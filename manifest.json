@@ -4,7 +4,7 @@
   "description": "Our little pet home",
   "start_url": "./",
   "scope": "./",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#FFF3E0",
   "theme_color": "#FFDDA8",
   "icons": [
