@@ -2,6 +2,10 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#FFDDA8">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <title>Pet Home · Round 9</title>
 <style>
 :root{--bg:#FFF3E0;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -632,4 +636,6 @@ var tb=$('toast'),tt;
 document.querySelectorAll('.bar button').forEach(function(b,i){b.addEventListener('click',function(){
   if(i===0){goScene('home');return}tb.style.opacity=1;clearTimeout(tt);tt=setTimeout(function(){tb.style.opacity=0},1400)})});
 })();
-</script></body></html>
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+</body></html>
