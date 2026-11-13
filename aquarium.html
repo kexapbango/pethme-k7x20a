@@ -3,12 +3,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Aquarium</title>
 <style>
-:root{--bg:#FFF3E0;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{--bg:#FFF3E0;color-scheme:light;box-sizing:border-box}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#2A1F18;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#2A1F18;color-scheme:dark}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 html,body{margin:0;height:100%;background:var(--bg);font-family:"Nunito","Trebuchet MS",system-ui,sans-serif;overflow:hidden}
-.phone{position:relative;height:100%;width:min(100vw,50dvh);margin:0 auto}
+.phone{position:relative;height:100%;width:100%}
 #aq-c{display:block;width:100%;height:100%;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .dbgb{position:absolute;left:6px;top:calc(6px + env(safe-area-inset-top,0px));z-index:6;width:40px;height:40px;border-radius:12px;border:3px solid #E8A458;background:#FFE9B5;font-size:20px;padding:0}
 #aq-dbgp{position:absolute;left:6px;top:calc(52px + env(safe-area-inset-top,0px));z-index:6;background:#FFF3D9;border:3px solid #E8A458;border-radius:14px;padding:8px;font:700 12px/1.35 system-ui,sans-serif;color:#6B3F1D;max-width:calc(100% - 20px)}
@@ -742,12 +742,24 @@ window.Aquarium={aud:AUD,CFG:CFG,LOOKS:LOOKS,SPECIES:SPECIES,DECOR:DECOR,creatur
   worldToScreen:function(x,y){return [W/2+(x-CX)*Z,H/2+(y-CY)*Z]},
   wake:wake,scare:scare,knockOut:startDown,debug:{panel:function(on){if(on&&!document.getElementById('aq-dbg'))buildDebug()},state:DBG}};
 })();
-</script><button id="closeTank" aria-label="Close aquarium" style="display:none;position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;z-index:99999;width:42px;height:42px;border-radius:50%;border:3px solid #E8A458;background:#FFE9B5;color:#6B3F1D;font:700 20px/1 sans-serif;cursor:pointer;touch-action:manipulation">✕</button>
+</script><button id="closeTank" aria-label="Close aquarium" style="display:none;position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:calc(env(safe-area-inset-right,0px) + 12px);z-index:99999;width:42px;height:42px;border-radius:50%;border:3px solid #E8A458;background:#FFE9B5;color:#6B3F1D;font:700 20px/1 sans-serif;cursor:pointer;touch-action:manipulation">✕</button>
 <script>
 (function(){
   if(window.parent===window)return; // opened on its own: no close button
   var b=document.getElementById('closeTank');b.style.display='block';
-  b.addEventListener('click',function(){parent.postMessage('closeTank',location.origin)});
+  var held=false; // true while the aquarium is closed (hidden under the room)
+  function aqPause(){try{window.Aquarium.stop();var c=window.Aquarium.aud&&window.Aquarium.aud.ctx;if(c&&c.state==='running')c.suspend()}catch(e){}}
+  function aqResume(){try{window.Aquarium.start();window.Aquarium.resize();var c=window.Aquarium.aud&&window.Aquarium.aud.ctx;if(c&&c.state==='suspended')c.resume()}catch(e){}}
+  b.addEventListener('click',function(){held=true;aqPause();parent.postMessage('closeTank',location.origin)});
+  window.addEventListener('message',function(e){
+    if(e.origin!==location.origin||e.source!==parent)return;
+    if(e.data==='tankPause'){held=true;aqPause()}
+    if(e.data==='tankResume'){held=false;aqResume()}
+  });
+  // also silence it when the whole app goes to the background
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden)aqPause(); else if(!held)aqResume();
+  });
   document.documentElement.style.overscrollBehavior='none';
 })();
 </script>

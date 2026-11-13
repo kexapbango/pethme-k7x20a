@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>Pet Home · Round 9</title>
 <style>
-:root{--bg:#FFF3E0;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{--bg:#FFF3E0;box-sizing:border-box}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#2A1F18}}
 :root[data-theme="dark"]{--bg:#2A1F18}
 html,body{margin:0;height:100%;background:var(--bg);font-family:"Nunito","Trebuchet MS",system-ui,sans-serif;overflow:hidden}
@@ -398,8 +398,8 @@ tkF.style.cssText='width:100%;height:100%;border:0;display:block';tkF.title='Aqu
 tkO.appendChild(tkF);document.body.appendChild(tkO);
 function tkLoad(){if(!tkF.getAttribute('src'))tkF.src='aquarium.html'}
 window.addEventListener('load',function(){setTimeout(tkLoad,2500)});
-$('tankhit').addEventListener('click',function(){if(!tapOK()||MV)return;tkLoad();tkO.style.display='block'});
-window.addEventListener('message',function(e){if(e.origin===location.origin&&e.source===tkF.contentWindow&&e.data==='closeTank')tkO.style.display='none'});
+$('tankhit').addEventListener('click',function(){if(!tapOK()||MV)return;tkLoad();tkO.style.display='block';try{tkF.contentWindow.postMessage('tankResume',location.origin)}catch(e){}});
+window.addEventListener('message',function(e){if(e.origin===location.origin&&e.source===tkF.contentWindow&&e.data==='closeTank'){tkO.style.display='none';try{tkF.contentWindow.postMessage('tankPause',location.origin)}catch(e){}}});
 /* ---------- move furniture (indoor) ---------- */
 var LK='pethome.layout',SX0=SEATX.slice(),SY0=SEAT_Y,MV=false,selU=null,drag=null,mvLE=null,mvRaf=0,mvT=0;
 function G(b){return [].slice.call(furn.querySelectorAll(':scope > [data-by="'+b+'"]'))}
