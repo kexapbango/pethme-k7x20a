@@ -1,5 +1,5 @@
 // Network-first: always tries to get the newest game, falls back to the saved copy when offline.
-var CACHE = 'pethome-v2';
+var CACHE = 'pethome-v7';
 var FILES = ['./', 'index.html', 'aquarium.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', function (e) {

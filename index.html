@@ -1,5 +1,13 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="en"><head><meta charset="utf-8"><script>document.documentElement.className+=' intro-on'</script>
+<style>
+html.intro-on,html.intro-on body{background:#000!important}
+#intro{position:fixed;inset:0;z-index:99999;overflow:hidden;cursor:pointer;background:#000;transition:background .6s ease,opacity .45s ease;-webkit-tap-highlight-color:transparent}
+#isv{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#iT{position:absolute;left:0;right:0;top:70%;text-align:center;font:800 clamp(28px,9vw,46px) "Nunito","Trebuchet MS",system-ui,sans-serif;letter-spacing:.02em;color:#6B3F1D;text-shadow:0 3px 0 #fff;opacity:0;transition:opacity .6s ease;pointer-events:none}
+.ih{transform-box:fill-box;transform-origin:center;animation:iH .9s ease-out forwards;pointer-events:none}
+@keyframes iH{0%{opacity:0;transform:translateY(12px) scale(.4)}30%{opacity:1}100%{opacity:0;transform:translateY(-90px) scale(1.2)}}
+</style>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#FFDDA8">
 <meta name="robots" content="noindex">
@@ -132,6 +140,18 @@ svg{width:100%;height:100%;-webkit-touch-callout:none;touch-action:none;user-sel
  .ed .tb.on{z-index:0}.ed .phd .tb{width:42px;min-width:42px}.ed .ro{font-size:13px;padding:8px 4px}
  .ed .hd .btn{min-height:38px;padding:5px 14px}.ed .tip{top:calc(52px + env(safe-area-inset-top,0px))}}
 </style></head><body>
+<div id="intro"><svg id="isv" xmlns="http://www.w3.org/2000/svg"></svg><div id="iT">Iwak K&amp;S</div></div>
+<script>
+(function(){var ov=document.getElementById('intro'),de=document.documentElement,done=false;
+function fin(){if(done)return;done=true;de.classList.remove('intro-on');if(ov.parentNode)ov.parentNode.removeChild(ov)}
+function fade(){if(done)return;ov.style.opacity=0;ov.style.pointerEvents='none';setTimeout(fin,450)}
+window.__introEnd=fade;
+var lt=0;ov.addEventListener('pointerdown',function(){var n=Date.now();if(n-lt<400)fade();lt=n});
+setTimeout(function(){if(!ov.getAttribute('data-run'))fin()},6000);
+setTimeout(fin,16000);
+})();
+</script>
+
 <div class="phone">
 <svg id="room" viewBox="0 0 400 860" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cozy living room with a pink axolotl you can pet">
 <!-- wall + floor -->
@@ -327,6 +347,79 @@ function Puppet0(type,hit){
   u.play=function(n){fx.classList.remove('hop','big');void fx.getBoundingClientRect();fx.classList.add(n)};
   fx.addEventListener('animationend',function(){fx.classList.remove('hop','big')});
   return u}
+/* ---------- opening intro ---------- */
+function runIntro(LA,LM){
+var ov=$('intro'),sv=$('isv'),iT=$('iT');
+if(!ov||!sv)return;
+ov.setAttribute('data-run','1');
+var H=860,W=Math.max(300,Math.round(H*innerWidth/innerHeight)),cx0=W/2;
+sv.setAttribute('viewBox','0 0 '+W+' '+H);
+function mk(L){var g=E('g',{transform:'translate(0 -3000)'},sv),pu=Puppet(L.type,false,L.img,L.hue,L.parts);g.appendChild(pu.root);
+  var b=pu.root.getBBox();if(!b.width||!b.height)b={x:-135,y:-245,width:270,height:245};
+  return {pu:pu,g:g,cx:b.x+b.width/2,bot:b.y+b.height,w:b.width,h:b.height}}
+var A=mk(LA),M=mk(LM);
+function put(P,x,y,s,rot){P.g.setAttribute('transform','translate('+x.toFixed(1)+' '+y.toFixed(1)+') rotate('+(rot||0)+') scale('+s.toFixed(3)+') translate('+(-P.cx).toFixed(1)+' '+(-P.bot).toFixed(1)+')')}
+var BIG=420,sA=Math.min(BIG/A.h,W*.98/A.w),sM=Math.min(BIG/M.h,W*.98/M.w),hA=A.h*sA,hM=M.h*sM;
+var yAh=H+14,yAs=H+hA+80,yMh=-14,yMs=-hM-80;
+var d=Math.min(W*.25,210),fA=Math.min(260/A.h,d*1.9/A.w),fM=Math.min(260/M.h,d*1.9/M.w),yF=H*.62,hFA=A.h*fA,hFM=M.h*fM;
+function clamp(u){return u<0?0:u>1?1:u}
+function eob(u){var c=1.70158;u=u-1;return 1+(c+1)*u*u*u+c*u*u}
+function eic(u){return u*u*u}
+function lerp(a,b,u){return a+(b-a)*u}
+function heart(x,y,ch,col){var e=E('text',{x:x,y:y,'font-size':46,'text-anchor':'middle',fill:col||'#FF7FA3',stroke:'#fff','stroke-width':5,'paint-order':'stroke',class:'ih'},sv);e.textContent=ch||'\u2665';setTimeout(function(){if(e.parentNode)e.parentNode.removeChild(e)},1000)}
+var fired={};function once(k,c,fn){if(!fired[k]&&c){fired[k]=1;fn()}}
+var t0=null;
+function frame(now){
+  if(!ov.parentNode)return;
+  if(t0===null)t0=now;
+  var t=(now-t0)/1000,hapA=false,hapM=false,fa,fm,ya,ym;
+  if(t<5.9){
+    ya=t<5?lerp(yAs,yAh,eob(clamp((t-.3)/.9))):lerp(yAh,yAs,eic(clamp((t-5)/.8)));
+    ym=t<5?lerp(yMs,yMh,eob(clamp((t-1.9)/.9))):lerp(yMh,yMs,eic(clamp((t-5)/.8)));
+    fa=t>=1.7?'laugh':t>=1.25?'happy':'neutral';hapA=t>=1.7&&t<5;
+    fm=t>=3.3?'laugh':t>=2.85?'happy':'neutral';hapM=t>=3.3&&t<5;
+    put(A,cx0,ya,sA,0);put(M,cx0,ym,sM,180);
+    var tA=yAh-hA,bM=yMh+hM;
+    once('a1',t>=1.9,function(){heart(cx0-120,tA+60);heart(cx0+110,tA+90,'\u2726','#FFC94D')});
+    once('a2',t>=2.5,function(){heart(cx0+10,tA+10)});
+    once('m1',t>=3.5,function(){heart(cx0-110,bM-50);heart(cx0+120,bM-80,'\u2726','#FFC94D')});
+    once('m2',t>=4.1,function(){heart(cx0,bM-20);heart(cx0-60,tA+40)});
+    if(t>=.2&&!fired.bg){fired.bg=1;ov.style.background='#FFF3E0'}
+  }else{
+    var f=t-5.9,uA=clamp(f/.7),uM=clamp((f-.15)/.7);
+    var hopA=(f>=1&&f<1.7)?Math.sin((f-1)/.7*Math.PI):0,hopM=(f>=1.5&&f<2.2)?Math.sin((f-1.5)/.7*Math.PI):0,all=f>=2.2&&f<3.4;
+    ya=lerp(H+hFA+40,yF,eob(uA))-70*hopA;ym=lerp(H+hFM+40,yF,eob(uM))-70*hopM;
+    hapA=hopA>0||all;hapM=hopM>0||all;fa=hapA?'laugh':'happy';fm=hapM?'laugh':'happy';
+    if(f>=2.2&&f<3){var q=Math.sin((f-2.2)/.8*Math.PI);ya-=70*q;ym-=70*q}
+    put(A,cx0-d,ya,fA,0);put(M,cx0+d,ym,fM,0);
+    if(f>=.9)iT.style.opacity=1;
+    once('f1',f>=1,function(){heart(cx0-d,yF-hFA-10)});
+    once('f2',f>=1.5,function(){heart(cx0+d,yF-hFM-10)});
+    once('f3',f>=2.2,function(){var k;for(k=0;k<6;k++)heart(cx0+(k-2.5)*(W<600?55:90),yF-hFA-30-(k%2)*40,k%2?'\u2726':'\u2665',k%2?'#FFC94D':'#FF7FA3')});
+    if(f>=3.5){if(window.__introEnd)window.__introEnd()}
+  }
+  A.pu.setFace(fa);M.pu.setFace(fm);
+  A.pu.pose(t,'idle',hapA);M.pu.pose(t,'idle',hapM);
+  requestAnimationFrame(frame)
+}
+requestAnimationFrame(frame)
+}
+/* picks two random pets that are ready (added pets load their image from storage first) */
+function startIntro(){
+var ov=$('intro');if(!ov)return;ov.setAttribute('data-run','1');
+var ts=Date.now();
+function ready(l){return !PH[l.id]||(l.img&&l.img!==BLANK)}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function tryGo(){
+  var ok=LIST.filter(ready);
+  if(ok.length<LIST.length&&Date.now()-ts<900){setTimeout(tryGo,60);return}
+  if(!ok.length){if(window.__introEnd)window.__introEnd();return}
+  var a=pick(ok),rest=ok.filter(function(x){return x!==a}),m=rest.length?pick(rest):a;
+  try{runIntro(a,m)}catch(e){if(window.__introEnd)window.__introEnd()}
+}
+tryGo()
+}
+try{startIntro()}catch(e){if(window.__introEnd)window.__introEnd()}
 /* ---------- camera / world ---------- */
 var SEATX=[140,218],SEAT_Y=314,SEATOWN=[null,null],FMIN=380,maxY=750,VH=860,VW=400,OX=0;
 function fit(){var r=(ph.clientWidth/ph.clientHeight)||.5;
