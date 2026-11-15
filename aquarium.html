@@ -162,9 +162,9 @@ var DECOR=[
 var cv=document.getElementById('aq-c'),ctx=cv.getContext('2d'),ph=document.querySelector('.phone');
 var W=1,H=1,dpr=1,Z=.2,CX=TW/2,CY=500,ZMIN=.2,ZMAX=1,tz=0,an=null,T=0;
 /* ---- embedded in the room: MINI = small live view drawn on its own fixed-size canvas (never resized), TR = fade/camera tween ---- */
-var MINI=(window.parent!==window),TR=null,bgA=MINI?0:1,mf=0,lastR=0;
+var EMB=(window.parent!==window),MINI=EMB,TR=null,bgA=EMB?0:1,mf=0,lastR=0,sentFull=false;   /* embedded in the room = no wall of its own, the room shows through */
 var MWd=240,MHd=131,mcv=document.createElement('canvas'),mctx=mcv.getContext('2d'),mdpr=Math.min(2,window.devicePixelRatio||1);mcv.width=MWd*mdpr;mcv.height=MHd*mdpr;
-var MZ=Math.min(MWd/(TW+2*CFG.tank.wall),MHd/(CFG.camera.aboveTank+TH+CFG.tank.wall)),MCX=TW/2,MCY=(-CFG.camera.aboveTank+TH+CFG.tank.wall)/2;
+var MZ=MWd/(TW+2*CFG.tank.wall),MCX=TW/2,MCY=(-CFG.camera.aboveTank+TH+CFG.tank.wall)/2;
 function R(a,b){return a+Math.random()*(b-a)}
 function cl(v,a,b){return Math.max(a,Math.min(b,v))}
 var sd=7;function rn(){sd=sd*16807%2147483647;return sd/2147483647}
@@ -725,7 +725,7 @@ function loop(ts){if(!running)return;
   lastR=ts;var dt=Math.min(MINI?.12:.05,(ts-last)/1000||0);last=ts;var st=Math.ceil(dt/.05)||1;
   for(var q=0;q<DBG.speed;q++)for(var s=0;s<st;s++)update(dt/st);
   if(TR)stepTR(dt);
-  if(MINI)drawMini();else draw();
+  if(MINI)drawMini();else{draw();if(!sentFull){sentFull=true;try{parent.postMessage('tankFullReady',location.origin)}catch(e){}}}
   raf=requestAnimationFrame(loop)}
 function drawMini(){var o=[ctx,W,H,dpr,Z,CX,CY,bgA];ctx=mctx;W=MWd;H=MHd;dpr=mdpr;Z=MZ;CX=MCX;CY=MCY;bgA=0;
   try{draw()}finally{ctx=o[0];W=o[1];H=o[2];dpr=o[3];Z=o[4];CX=o[5];CY=o[6];bgA=o[7]}mf++}
@@ -734,11 +734,10 @@ function stepTR(dt){TR.t+=dt;var u=Math.min(1,TR.t/TR.d),e=u<.5?2*u*u:1-Math.pow
   if(u>=1){var f=TR.done;TR=null;if(f)f()}}
 function defCam(){var z=Z,x=CX,y=CY;Z=ZMIN;clampC();var o={Z:Z,CX:CX,CY:CY};Z=z;CX=x;CY=y;return o}
 function setMini(){if(TR)return;MINI=true;bgA=0;wantRun=true;if(!running&&ready)start()}
-function enterFull(){wantRun=true;if(!running&&ready)start();MINI=false;fit();var t=defCam();Z=t.Z;CX=t.CX;CY=t.CY;bgA=0;
-  TR={t:0,d:.35,a:{Z:Z,CX:CX,CY:CY,bg:0},b:{Z:Z,CX:CX,CY:CY,bg:1},done:function(){bgA=1}};
+function enterFull(){wantRun=true;if(!running&&ready)start();MINI=false;fit();Z=ZMIN;CX=MCX;CY=MCY;TR=null;bgA=0;sentFull=false;
   try{var c=AUD.ctx;if(c&&c.state==='suspended')c.resume()}catch(e){}}
-function leaveFull(){if(MINI||TR)return false;var t=defCam();
-  TR={t:0,d:.4,a:{Z:Z,CX:CX,CY:CY,bg:bgA},b:{Z:t.Z,CX:t.CX,CY:t.CY,bg:0},done:function(){MINI=true;bgA=0;try{parent.postMessage('closeTank',location.origin)}catch(x){}}};return true}
+function leaveFull(){if(MINI||TR)return false;
+  TR={t:0,d:.4,a:{Z:Z,CX:CX,CY:CY,bg:0},b:{Z:ZMIN,CX:MCX,CY:MCY,bg:0},done:function(){MINI=true;bgA=0;try{parent.postMessage('closeTank',location.origin)}catch(x){}}};return true}
 function start(){wantRun=true;if(!ready||running)return;running=true;last=0;fit();raf=requestAnimationFrame(loop)}
 function stop(){wantRun=false;running=false;cancelAnimationFrame(raf)}
 ATLAS.onload=function(){buildGround();buildDecor();populate();jarFill();if(CFG.debug)buildDebug();fit();Z=ZMIN;clampC();ready=true;if(wantRun)start()};
@@ -750,7 +749,7 @@ setTimeout(function(){document.getElementById('aq-hint').style.opacity=0},5000);
 function find(a,x,key){return typeof x==='string'?a.filter(function(q){return q[key].id===x}).pop():x}
 window.Aquarium={aud:AUD,CFG:CFG,LOOKS:LOOKS,SPECIES:SPECIES,DECOR:DECOR,creatures:fish,pellets:pel,decor:decor,jar:J,water:water,
   /* lifecycle: mount .phone > canvas#aq-c in your page, then start()/stop() when the activity opens/closes; resize() after layout changes */
-  start:start,stop:stop,resize:fit,mini:setMini,openFull:enterFull,closeFull:leaveFull,mcv:mcv,frames:function(){return mf},isRunning:function(){return running},
+  start:start,stop:stop,resize:fit,mini:setMini,openFull:enterFull,closeFull:leaveFull,mcv:mcv,frames:function(){return mf},cam:function(){return [Z,CX,CY,W,H,ZMIN,MCX,MCY]},isRunning:function(){return running},
   addCreature:function(id){var sp=SPECIES.filter(function(q){return q.id===id})[0];return sp?spawn(sp):null},
   removeCreature:function(x){var f=find(fish,x,'sp'),k=fish.indexOf(f);if(k<0)return false;fish.forEach(function(g){if(g.ld===f)g.ld=null});fish.splice(k,1);return true},
   addDecor:function(id){var D=DECOR.filter(function(q){return q.id===id})[0];if(!D)return null;var n=decor.length;buildDecor([D],true);return decor[n]||null},
