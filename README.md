@@ -40,6 +40,8 @@ Making this repository publicly accessible for limited sharing and distribution 
 
 Access to this repository does not transfer ownership or intellectual property rights.
 
-Copyright © 2026. All rights reserved.
+Copyright © 2026 Cen and Kin. All rights reserved.
 
-Unauthorized use is not permitted.
+Pet Home is an independently developed project.
+All original source code, artwork, designs, and assets
+are owned by the original creator.
