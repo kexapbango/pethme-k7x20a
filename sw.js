@@ -1,5 +1,5 @@
 // Network-first: always tries to get the newest game, falls back to the saved copy when offline.
-var CACHE = 'pethome-v10';
+var CACHE = 'pethome-v14';
 var FILES = ['./', 'index.html', 'aquarium.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', function (e) {
@@ -15,7 +15,7 @@ self.addEventListener('activate', function (e) {
 });
 
 self.addEventListener('fetch', function (e) {
-  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
+  if (e.request.method !== 'GET' || (new URL(e.request.url).origin !== location.origin && e.request.url.indexOf("gstatic.com/firebasejs/") < 0)) return;
   e.respondWith(
     fetch(e.request).then(function (res) {
       var copy = res.clone();

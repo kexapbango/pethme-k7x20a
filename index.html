@@ -62,7 +62,7 @@ svg{width:100%;height:100%;-webkit-touch-callout:none;touch-action:none;user-sel
 .sl{animation:sl .28s ease-out}.sr{animation:sr .28s ease-out}
 @keyframes sl{from{opacity:0;transform:translateX(-50px)}to{opacity:1;transform:none}}
 @keyframes sr{from{opacity:0;transform:translateX(50px)}to{opacity:1;transform:none}}
-.pdots{display:flex;gap:8px;margin:4px 0}
+.pdots{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:4px 0}
 .pdots i{width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid #E8A458;opacity:.6}
 .pdots i.on{background:#E8A458;opacity:1}
 .pname{width:80%;font:800 30px/1.2 "Nunito","Trebuchet MS",system-ui,sans-serif;text-align:center;color:#6B3F1D;background:transparent;border:0;border-bottom:3px dashed #E8A458;outline:0;padding:2px 0}
@@ -79,7 +79,7 @@ svg{width:100%;height:100%;-webkit-touch-callout:none;touch-action:none;user-sel
 #mo{background:#E8A458;color:#fff}
 
 .dd{position:absolute;top:calc(50px + env(safe-area-inset-top,0px));right:8px;z-index:31;min-width:188px;background:#FFF3D9;border:3px solid #E8A458;border-radius:14px;padding:6px;display:none;flex-direction:column;gap:2px;font:800 15px "Nunito","Trebuchet MS",system-ui,sans-serif;color:#6B3F1D;box-shadow:0 6px 18px rgba(90,45,10,.25)}
-.dd.on{display:flex}
+.dd{max-height:calc(100vh - 70px);overflow-y:auto}.dd.on{display:flex}
 .dd button,.pxb button{font:inherit;color:inherit;background:transparent;border:0;border-radius:9px;padding:9px 10px;text-align:left;cursor:pointer}
 .dd button:hover,.dd button:active{background:#FFE0A3}
 .dd button[disabled]{opacity:.45;cursor:default}
@@ -257,16 +257,17 @@ var g0=$('chk'),s0='<rect x="-34" y="-34" width="68" height="68" rx="5" fill="#f
 for(var r=0;r<4;r++)for(var c=0;c<4;c++)if((r+c)%2===0)s0+='<rect x="'+(-30+c*15)+'" y="'+(-30+r*15)+'" width="15" height="15" fill="#222"/>';
 g0.innerHTML=s0;
 /* ---------- saved data ---------- */
-var KEY='pethome.v1',MAXPETS=6,DB={title:'sweet humm',photo:{a:'',b:''},pets:{},roster:[{id:'axo',type:'axo'},{id:'monkey',type:'monkey'}]};
+var KEY='pethome.v1',MAXPETS=20,DB={title:'sweet humm',photo:{a:'',b:''},pets:{},roster:[{id:'axo',type:'axo'},{id:'monkey',type:'monkey'}]};
 try{var sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){if(sv.title)DB.title=sv.title;if(sv.photo)DB.photo=sv.photo;if(sv.pets)DB.pets=sv.pets;if(sv.roster&&sv.roster.length)DB.roster=sv.roster}}catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){try{note('Storage is full')}catch(e2){}}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(DB));try{window.PH_SAVED&&window.PH_SAVED()}catch(e3){}}catch(e){try{note('Storage is full')}catch(e2){}}}
+window.PH_DB=DB;window.PH_SAVE=save;window.PH_NOTE=note;window.PH_ADD=addPet;window.PH_BYE=doBye;window.PH_APPLYPET=function(r){applyPet(r);putPet(r)};window.PH_PETS=function(){return pets};window.PH_GEST=function(){return gest};window.PH_SCENE=function(){return scene};window.PH_RENDER=renderPaint;window.PH_FURNGET=function(){var o={};U.forEach(function(u){if(u.dx||u.dy)o[u.k]=[Math.round(u.dx),Math.round(u.dy)]});return o};window.PH_FURN_SET=function(o){U.forEach(function(u){var v=o[u.k];setOff(u,v?+v[0]:0,v?+v[1]:0)});seatSync();saveL()};
 /* pet images + parts live in IndexedDB; localStorage keeps only small metadata (img/parts are non-enumerable so JSON skips them) */
 var BLANK='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==',PH={},idbP=null;
 function hide(r,k,v){Object.defineProperty(r,k,{value:v,writable:true,configurable:true,enumerable:false})}
 function idb(){return idbP||(idbP=new Promise(function(ok,no){try{var q=indexedDB.open('pethome',1);q.onupgradeneeded=function(){q.result.createObjectStore('pet')};q.onsuccess=function(){ok(q.result)};q.onerror=function(){no(q.error)}}catch(e){no(e)}}))}
 function idbOp(m,f){return idb().then(function(d){return new Promise(function(ok,no){var t=d.transaction('pet',m),r=f(t.objectStore('pet'));t.oncomplete=function(){ok(r&&r.result)};t.onerror=t.onabort=function(){no(t.error)}})})}
 function putPet(r){var im=r.img,pt=r.parts||[];
-  return idbOp('readwrite',function(st){return st.put({img:im,parts:pt},r.id)}).then(function(){hide(r,'img',im);hide(r,'parts',pt);r.ib=1;save()},
+  return idbOp('readwrite',function(st){return st.put({img:im,parts:pt},r.id)}).then(function(){hide(r,'img',im);hide(r,'parts',pt);r.ib=1;save();try{window.PH_PETSAVED&&window.PH_PETSAVED(r)}catch(e4){}},
     function(){Object.defineProperty(r,'img',{enumerable:true});Object.defineProperty(r,'parts',{enumerable:true});delete r.ib;save()})}
 DB.roster.forEach(function(r){if(r.ib&&!r.img){PH[r.id]=1;hide(r,'img',BLANK);hide(r,'parts',[])}});
 var DEF={
@@ -499,17 +500,39 @@ window.addEventListener('pointermove',function(e){
   if(!gest)return;var q=pt(e),p=gest.p;
   if(gest.held){gest.vx=q.x-lastCam+OX;gest.qy=q.y;p.x=q.x;p.y=q.y+50*sc(p.y);clampXY(p,300);return}
   if(!gest.pet&&Math.hypot(q.x-gest.sx,q.y-gest.sy)>10){gest.pet=true;clearTimeout(gest.timer);p.mode='busy'}
-  if(gest.pet){p.hapT=1.2;var n=performance.now();if(n-gest.lh>260){gest.lh=n;var h=headPos(p);spawn('heart',h[0],h[1])}}
+  if(gest.pet){p.hapT=1.2;var n=performance.now();if(n-gest.lh>260){gest.lh=n;var h=headPos(p);spawn('heart',h[0],h[1]);fxOut(p,'pet')}}
 });
+function grab(p){p.tw=null;p.goSofa=false;p.goDoor=false;relSeat(p);if(p.sit)setSit(p,false);if(p.mode!=='held'){p.mode='held';p.pu.play('hop')}}
+function drop(p,qy){ /* put a lifted pet down: door, sofa seat, or just on the floor */
+  var od=(p.scene==='home'&&p.x>266&&p.x<368&&qy<350)?1:(p.scene==='out'&&p.x>250&&p.x<392&&qy<350)?2:0;
+  var si=(!od&&p.y>SEAT_Y-14&&p.y<SEAT_Y+58)?nearSeat(p):-1;
+  if(od){jump(p,od===1?DOORX:HOUSEX,od===1?306:352,.45,22,passDoor)}
+  else if(si>=0){SEATOWN[si]=p;p.seat=si;jump(p,SEATX[si],SEAT_Y,.4,24,land)}
+  else{p.y=Math.max(p.y,FMIN);p.mode='idle';p.idle=1.5;p.pu.play('hop')}}
+function petById(id){for(var i=0;i<pets.length;i++)if(pets[i].id===id)return pets[i];return null}
+function fxOut(p,t){try{window.PH_FXOUT&&window.PH_FXOUT({t:t,id:p.id})}catch(e){}}
+/* the friend's phone is lifting one of our pets (we are the host that runs the pets) */
+window.PH_REMHOLD=function(e){var p=petById(e.id);if(!p||(gest&&gest.p===p))return;
+  var q={x:+e.x,y:+e.y};if(!isFinite(q.x)||!isFinite(q.y))return;clampXY(q,300);
+  if(p.mode!=='held'||!p.rh){grab(p);p.x=q.x;p.y=q.y}
+  p.hx=q.x;p.hy=q.y;p.rqy=+e.qy||0;p.rh=performance.now();p.bubT=-1};
+window.PH_REMDROP=function(e){var p=petById(e.id);if(!p||(gest&&gest.p===p))return;
+  var q={x:+e.x,y:+e.y};if(!isFinite(q.x)||!isFinite(q.y))return;clampXY(q,300);
+  grab(p);p.x=q.x;p.y=q.y;p.rh=0;p.hapT=1;drop(p,+e.qy||0)};
+/* the friend tapped / double-tapped / rubbed a pet: play the same reaction here */
+window.PH_FXIN=function(e){var p=petById(e.id),i,h;if(!p||!e.t)return;p.bubT=-1;
+  var sf=p.mode==='held'||p.mode==='tween';
+  if(e.t==='tap'){if(sf){p.hapT=.9;p.pu.play('hop');h=headPos(p);spawn('heart',h[0],h[1])}else tap(p)}
+  else if(e.t==='big'){if(sf){p.hapT=1.5;p.bigT=1.5;p.pu.play('big');for(i=0;i<3;i++){h=headPos(p);spawn('heart',h[0],h[1])}}else big(p)}
+  else if(e.t==='pet'){p.hapT=1.2;h=headPos(p);spawn('heart',h[0],h[1]);if(!sf&&!p.mir)busy(p,900)}};
 function up(){
   if(!gest)return;clearTimeout(gest.timer);var g=gest,p=g.p;gest=null;
-  if(g.held){p.hapT=1;var od=(p.scene==='home'&&p.x>266&&p.x<368&&g.qy<350)?1:(p.scene==='out'&&p.x>250&&p.x<392&&g.qy<350)?2:0;
-    var si=(!od&&p.y>SEAT_Y-14&&p.y<SEAT_Y+58)?nearSeat(p):-1;
-    if(od){jump(p,od===1?DOORX:HOUSEX,od===1?306:352,.45,22,passDoor)}
-    else if(si>=0){SEATOWN[si]=p;p.seat=si;jump(p,SEATX[si],SEAT_Y,.4,24,land)}
-    else{p.y=Math.max(p.y,FMIN);p.mode='idle';p.idle=1.5;p.pu.play('hop')}}
+  if(g.held){p.hapT=1;var rl='';try{rl=window.PH_ROLE?window.PH_ROLE():''}catch(e6){}
+    if(rl==='guest'){p.mode='idle';p.idle=1.5;p.dh=performance.now()+700;p.pu.play('hop')} /* the host phone decides where it lands */
+    else drop(p,g.qy);
+    try{window.PH_DROPPED&&window.PH_DROPPED(p,g.qy,rl)}catch(e7){}}
   else if(g.pet){p.mode=p.sit?'sit':'idle';p.idle=1.5}
-  else{var n=performance.now();if(n-lastTap<320)big(p);else tap(p);lastTap=n}
+  else{var n=performance.now();if(n-lastTap<320){big(p);fxOut(p,'big')}else{tap(p);fxOut(p,'tap')}lastTap=n}
 }
 window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);
 var fi=[].slice.call(furn.querySelectorAll('[data-by]'));
@@ -608,7 +631,7 @@ function setOff(u,dx,dy){u.dx=dx;u.dy=dy;
     if(e.hasAttribute('data-by0'))e.dataset.by=(+e.getAttribute('data-by0'))+dy});
   if(u.k==='sofa'){SEATX[0]=SX0[0]+dx;SEATX[1]=SX0[1]+dx;SEAT_Y=SY0+dy}}
 function seatSync(){pets.forEach(function(p){if(p.seat>=0&&p.mode==='sit'){p.x=SEATX[p.seat];p.y=SEAT_Y}})}
-function saveL(){var o={};U.forEach(function(u){if(u.dx||u.dy)o[u.k]=[Math.round(u.dx),Math.round(u.dy)]});try{localStorage.setItem(LK,JSON.stringify(o))}catch(e){}}
+function saveL(){var o={};U.forEach(function(u){if(u.dx||u.dy)o[u.k]=[Math.round(u.dx),Math.round(u.dy)]});try{localStorage.setItem(LK,JSON.stringify(o))}catch(e){}try{window.PH_FURN&&window.PH_FURN(o)}catch(e5){}}
 U.forEach(function(u){u.dx=0;u.dy=0});
 try{var lo=JSON.parse(localStorage.getItem(LK)||'null');if(lo)U.forEach(function(u){var v=lo[u.k];if(v&&isFinite(v[0])&&isFinite(v[1]))setOff(u,+v[0],+v[1])})}catch(e){}
 function wr(u){var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
@@ -726,7 +749,7 @@ function ddRender(){
   if(ddSub==='add'&&!full)h+='<div class="sub"><button data-a="draw">✏️ Draw it</button><button data-a="photo">📷 From a photo</button><button data-a="clone">🐒 Existing pet</button></div>';
   h+='<button data-a="byem"'+(n<=1?' disabled':'')+'>👋 Say goodbye '+(ddSub==='bye'?'▴':'▾')+'</button>';
   if(ddSub==='bye'&&n>1)h+='<div class="sub">'+LIST.map(function(L){return '<button data-a="bye" data-id="'+L.id+'">'+esc(DB.pets[L.id].name||'Pet')+'</button>'}).join('')+'</div>';
-  h+='<button data-a="mv">🛋️ Move furniture</button><button data-a="mvreset">↩️ Reset furniture</button>';
+  h+='<button data-a="link">🔗 Link with friend</button>';h+='<button data-a="mv">🛋️ Move furniture</button><button data-a="mvreset">↩️ Reset furniture</button>';
   dd.innerHTML=h}
 function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function ddClose(){dd.classList.remove('on');ddSub=''}
@@ -743,6 +766,7 @@ dd.addEventListener('click',function(e){var b=e.target.closest('button');if(!b||
   else if(a==='photo'){ddClose();photoPet()}
   else if(a==='clone'){ddClose();clonePet()}
   else if(a==='bye'){ddClose();byePet(b.dataset.id)}
+  else if(a==='link'){ddClose();if(window.PH_LINK)window.PH_LINK();else note('Needs internet to link')}
   else if(a==='mv'){ddClose();setMV(true)}
   else if(a==='mvreset'){ddClose();if(confirm('Put all furniture back in the default places?')){U.forEach(function(u){setOff(u,0,0)});seatSync();saveL()}}});
 /* ---------- add / remove pets ---------- */
@@ -1017,7 +1041,9 @@ function removeBg(blob){
 /* ---------- main loop ---------- */
 function upd(p,dt){
   p.t+=dt;var lift=0;if(p.scene==='out')p.outT-=dt;
-  if(p.mode==='idle'){p.idle-=dt;if(p.idle<=0)pick(p)}
+  if(p.rh&&!(gest&&gest.p===p)){if(performance.now()-p.rh>2500){p.rh=0;if(p.mode==='held')drop(p,p.rqy||400)}else if(p.mode==='held'){var kk=Math.min(1,dt*14);p.x+=(p.hx-p.x)*kk;p.y+=(p.hy-p.y)*kk}}
+  if(p.mir){}
+  else if(p.mode==='idle'){p.idle-=dt;if(p.idle<=0)pick(p)}
   else if(p.mode==='sit'){p.sitT-=dt;if(p.sitT<=0)leave(p)}
   else if(p.mode==='walk'){
     var dx=p.tx-p.x,dy=p.ty-p.y,d=Math.hypot(dx,dy);
@@ -1053,6 +1079,7 @@ function loop(ts){
   if(!sw){if(Math.abs(camV)>2){cam+=camV*dt;camV*=Math.exp(-5*dt);var c2=Math.max(-CL,Math.min(CL,cam));if(c2!==cam){cam=c2;camV=0}}else camV=0}
   if(gest&&gest.held&&gest.vx!==undefined){if(gest.vx<50)cam=Math.max(-CL,cam-260*dt);else if(gest.vx>VW-50)cam=Math.min(CL,cam+260*dt);gest.p.x=gest.vx-OX+cam;clampXY(gest.p,300)}
   if(Math.abs(cam-lastCam)>.05){lastCam=cam;world.setAttribute('transform','translate('+(OX-cam).toFixed(1)+' 0)')}
+  if(gest&&gest.held){try{window.PH_HELD&&window.PH_HELD(gest.p,gest.qy!==undefined?gest.qy:gest.p.y-50)}catch(e8){}}
   pets.forEach(function(p){upd(p,dt)});
   if(pp){ppT+=dt;pp.pose(ppT,'idle',ppHap)}
   depth();
@@ -1082,5 +1109,279 @@ function first(){go();if(on())rm()}
 function rm(){['pointerup','touchend','click'].forEach(function(t){d.removeEventListener(t,first,true)})}
 ['pointerup','touchend','click'].forEach(function(t){d.addEventListener(t,first,true)});
 go()})();
+</script>
+<script type="module">
+/* Link with a friend: anonymous sign-in, pairing codes, shared room sync (Firebase) */
+import {initializeApp} from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
+import {getAuth,signInAnonymously,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/13.3.0/firebase-auth.js";
+import {getDatabase,ref,get,set,remove,push,onValue,onChildAdded,onChildChanged,onChildRemoved} from "https://www.gstatic.com/firebasejs/13.3.0/firebase-database.js";
+const app=initializeApp({apiKey:"AIzaSyDzze330-U8p5OeeIx4xCFannckOz9FuLk",authDomain:"pethome-f835c.firebaseapp.com",databaseURL:"https://pethome-f835c-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"pethome-f835c",storageBucket:"pethome-f835c.firebasestorage.app",messagingSenderId:"114571579815",appId:"1:114571579815:web:0825560367666b1f1fa682"});
+const auth=getAuth(app),db=getDatabase(app);
+const lsg=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lss=(k,v)=>{try{if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){}};
+const note=m=>{try{window.PH_NOTE(m)}catch(e){}};
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const AL='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const rid=(a,b)=>[a,b].sort().join('_');
+const norm=s=>{s=String(s).toUpperCase().replace(/[^A-Z0-9]/g,'');return s.length===8?s.slice(0,4)+'-'+s.slice(4):''};
+const nick=()=>lsg('ph.nick')||'';
+let uid=null,authErr='',myCode='',room=lsg('ph.room')||'',friend=lsg('ph.friend')||'';
+let linked=false,wasLinked=false,first=true,applying=false,pushT=0,offs=[],cur=null,reqOv=null;
+let petsOn=false,petsReady=false,fxOn=false,fxBase='',lastHoldTs=0,hT=0,holdId='',fxT=0;const incoming=new Set();
+const SYN=new Set((()=>{try{return JSON.parse(lsg('ph.synced')||'[]')}catch(e){return[]}})());
+const savS=()=>lss('ph.synced',JSON.stringify([...SYN]));
+const clean=o=>JSON.parse(JSON.stringify(o===undefined?null:o));
+
+function ov(html){var o=document.createElement('div');o.className='pxo';var b=document.createElement('div');b.className='pxb';b.innerHTML=html;o.appendChild(b);document.querySelector('.phone').appendChild(o);o.addEventListener('pointerdown',e=>e.stopPropagation());return {o:o,b:b,close:()=>o.remove()}}
+
+async function ensureCode(){
+  if(lsg('ph.codeUid')===uid&&lsg('ph.code')){myCode=lsg('ph.code');return}
+  for(let i=0;i<5;i++){
+    let s='';crypto.getRandomValues(new Uint8Array(8)).forEach(x=>{s+=AL[x%AL.length]});
+    const c=s.slice(0,4)+'-'+s.slice(4);
+    try{await set(ref(db,'codes/'+c),uid);myCode=c;lss('ph.code',c);lss('ph.codeUid',uid);return}catch(e){}
+  }
+}
+
+async function sendReq(input){
+  const c=norm(input);
+  if(!c){note('Check the code (8 letters/numbers)');return}
+  if(c===myCode){note("That's your own code");return}
+  const s=await get(ref(db,'codes/'+c));
+  if(!s.exists()){note('Code not found');return}
+  const them=s.val(),r=rid(uid,them);
+  await set(ref(db,'rooms/'+r+'/members/'+uid),true);
+  await set(ref(db,'users/'+them+'/requests/'+uid),{ts:Date.now(),nick:nick()||'Friend'});
+  room=r;friend=them;lss('ph.room',r);lss('ph.friend',them);watchRoom();
+  note('Request sent! Waiting for your friend…');
+}
+
+async function accept(from){
+  const r=rid(uid,from);
+  await set(ref(db,'rooms/'+r+'/members/'+uid),true);
+  await remove(ref(db,'users/'+uid+'/requests/'+from));
+  room=r;friend=from;lss('ph.room',r);lss('ph.friend',from);watchRoom();
+}
+
+async function unlink(){
+  try{await remove(ref(db,'rooms/'+room+'/members/'+uid))}catch(e){}
+  offs.forEach(f=>f());offs=[];room=friend='';linked=wasLinked=false;petsOn=petsReady=false;fxOn=false;SYN.clear();savS();
+  lss('ph.room',null);lss('ph.friend',null);render();note('Unlinked');
+}
+
+function watchRoom(){
+  offs.forEach(f=>f());offs=[];first=true;wasLinked=false;petsOn=petsReady=false;fxOn=false;
+  if(!room)return;
+  offs.push(onValue(ref(db,'rooms/'+room+'/members'),s=>{
+    const m=s.val()||{};linked=!!(m[uid]&&friend&&m[friend]);
+    if(linked&&!wasLinked){
+      if(!first)note('Linked with your friend 💛');
+      get(ref(db,'rooms/'+room+'/state')).then(x=>x.exists()?applyRemote(x.val()):pushState()).catch(()=>{});startPets();startFx();get(ref(db,'rooms/'+room+'/photos')).then(x=>applyPhotos(x.val())).catch(()=>{});get(ref(db,'rooms/'+room+'/furn')).then(x=>{const r=x.val();r?applyFurn(r):window.PH_FURN(window.PH_FURNGET())}).catch(()=>{});
+    }
+    wasLinked=linked;first=false;render();
+  },()=>{}));
+  offs.push(onValue(ref(db,'rooms/'+room+'/state'),s=>applyRemote(s.val()),()=>{}));
+  offs.push(onValue(ref(db,'rooms/'+room+'/photos'),s=>applyPhotos(s.val()),()=>{}));
+  offs.push(onValue(ref(db,'rooms/'+room+'/furn'),s=>applyFurn(s.val()),()=>{}));
+  offs.push(onValue(ref(db,'rooms/'+room+'/live'),s=>{const v=s.val();if(v&&v.by!==uid&&v.p){snap=v.p;snapT=performance.now()}},()=>{}));
+  /* a pet lifted on the other phone: the host copies the lift (position + release) */
+  let hf=true;
+  offs.push(onValue(ref(db,'rooms/'+room+'/hold'),s=>{
+    if(hf){hf=false;return}
+    const v=s.val();if(!v||v.by===uid||!linked||!isHost()||!v.id)return;
+    if(!(v.ts>lastHoldTs))return;lastHoldTs=v.ts;
+    try{if(v.on)window.PH_REMHOLD(v);else window.PH_REMDROP(v)}catch(e){}
+  },()=>{}));
+}
+
+/* what is shared for now: board title + pet profile text (not photos / pet pictures) */
+function pushState(){
+  if(!linked||applying||!window.PH_DB)return;
+  clearTimeout(pushT);
+  pushT=setTimeout(()=>{
+    const D=window.PH_DB,t=Date.now();lss('ph.ts',String(t));
+    set(ref(db,'rooms/'+room+'/state'),{title:D.title,pets:JSON.parse(JSON.stringify(D.pets)),updated:t,by:uid}).catch(()=>{});
+  },800);
+}
+function applyRemote(r){
+  const D=window.PH_DB;
+  if(!r||!D||r.by===uid||!(r.updated>(+lsg('ph.ts')||0)))return;
+  applying=true;
+  try{
+    if(typeof r.title==='string')D.title=r.title.slice(0,16);
+    const P=r.pets||{};
+    Object.keys(D.pets).forEach(k=>{if(P[k]&&typeof P[k]==='object')Object.assign(D.pets[k],P[k])});
+    lss('ph.ts',String(r.updated));window.PH_SAVE();
+    const t=document.getElementById('ptitle');if(t)t.textContent=D.title;
+    note('Updated from your friend 💛');
+  }finally{applying=false}
+}
+
+function watchInbox(){
+  onValue(ref(db,'users/'+uid+'/requests'),s=>{
+    const q=s.val()||{},k=Object.keys(q)[0];
+    if(k)showReq(k,(q[k]&&q[k].nick)||'Your friend');
+  },()=>{});
+}
+function showReq(from,n){
+  if(reqOv&&reqOv.from===from)return;
+  if(reqOv)reqOv.close();
+  const v=ov('<div style="font-size:20px">💌 '+esc(n)+'</div><p>wants to link pet homes with you.</p><div class="row2"><button class="btn pri" id="phY">Accept</button><button class="btn" id="phNo">Decline</button></div>');
+  v.from=from;reqOv=v;
+  v.b.querySelector('#phY').onclick=async()=>{v.close();reqOv=null;try{await accept(from)}catch(e){note('Could not link, try again')}};
+  v.b.querySelector('#phNo').onclick=()=>{v.close();reqOv=null;remove(ref(db,'users/'+uid+'/requests/'+from)).catch(()=>{})};
+}
+
+function render(){
+  if(!cur)return;
+  const b=cur.b,q=s=>b.querySelector(s);
+  b.innerHTML='<div style="font-size:20px">🔗 Link with friend</div>'
+   +(linked?'<p>Linked 💛</p>':(room?'<p>Waiting for your friend to accept…</p>':''))
+   +'<p style="margin:10px 0 2px">Your code</p><div style="font-size:26px;letter-spacing:2px">'+esc(myCode||'…')+'</div>'
+   +'<div class="row2"><button class="btn" id="phCopy">Copy</button></div>'
+   +(linked?'<div class="row2"><button class="btn" id="phUn">Unlink</button><button class="btn pri" id="phX">Close</button></div>'
+    :'<input class="nm" id="phC" placeholder="Friend\'s code" maxlength="9" autocomplete="off"><input class="nm" id="phN" placeholder="Your name" maxlength="20" value="'+esc(nick())+'"><div class="row2"><button class="btn pri" id="phGo">Send request</button><button class="btn" id="phX">Close</button></div>');
+  q('#phCopy').onclick=()=>{try{navigator.clipboard.writeText(myCode).then(()=>note('Copied')).catch(()=>{})}catch(e){}};
+  q('#phX').onclick=()=>cur&&cur.close();
+  if(q('#phUn'))q('#phUn').onclick=unlink;
+  if(q('#phGo'))q('#phGo').onclick=async()=>{
+    lss('ph.nick',q('#phN').value.trim().slice(0,20)||'Friend');
+    try{await sendReq(q('#phC').value)}catch(e){note('Could not send, check internet')}
+  };
+}
+/* wall photos (160px jpegs) */
+const LASTP={a:'',b:''};
+function photoDiff(){
+  const D=window.PH_DB;if(!linked||!D||applying||!D.photo)return;
+  ['a','b'].forEach(k=>{const v=D.photo[k];if(v&&v!==LASTP[k]){LASTP[k]=v;set(ref(db,'rooms/'+room+'/photos/'+k),{data:v,ts:Date.now(),by:uid}).catch(()=>{})}});
+}
+function applyPhotos(P){
+  const D=window.PH_DB;if(!D||!D.photo)return;let ch=false;
+  ['a','b'].forEach(k=>{const r=P&&P[k];
+    if(r&&typeof r.data==='string'){LASTP[k]=r.data;if(r.by!==uid&&r.data!==D.photo[k]){D.photo[k]=r.data;ch=true}}else LASTP[k]=''});
+  if(ch){applying=true;try{window.PH_SAVE();window.PH_RENDER()}finally{applying=false}}
+  photoDiff();
+}
+/* furniture layout */
+let applyingF=false,lastF='';
+window.PH_FURN=o=>{if(!linked||applyingF)return;const s=JSON.stringify(o);if(s===lastF)return;lastF=s;set(ref(db,'rooms/'+room+'/furn'),{s:s,by:uid,ts:Date.now()}).catch(()=>{})};
+function applyFurn(r){
+  if(!r||r.by===uid||!r.s||r.s===lastF)return;
+  lastF=r.s;applyingF=true;try{window.PH_FURN_SET(JSON.parse(r.s))}catch(e){}finally{applyingF=false}
+}
+/* live movement: the phone with the smaller id is the host and runs the pets; the other phone mirrors it.
+   If either side is offline or the host goes quiet for 2.5s, each phone goes back to its own movement. */
+let online=false,snap=null,snapT=0,lt=performance.now();
+const MODES=['idle','walk','sit','held'],MC={idle:0,walk:1,sit:2,busy:0,held:3,tween:1};
+const isHost=()=>!!(linked&&uid&&friend&&uid<friend);
+onValue(ref(db,'.info/connected'),s=>{online=s.val()===true},()=>{});
+setInterval(()=>{
+  if(!isHost()||!online||document.hidden||!petsReady||!window.PH_PETS)return;
+  const o={};window.PH_PETS().forEach(p=>{o[p.id]=[Math.round(p.x*10)/10,Math.round(p.y*10)/10,p.face,MC[p.mode]||0,p.sit?1:0,p.scene==='out'?1:0]});
+  set(ref(db,'rooms/'+room+'/live'),{by:uid,ts:Date.now(),p:o}).catch(()=>{});
+},300);
+function mirror(now){
+  requestAnimationFrame(mirror);
+  const dt=Math.min(.1,(now-lt)/1000);lt=now;
+  const P=window.PH_PETS&&window.PH_PETS();if(!P)return;
+  const live=linked&&online&&!isHost()&&snap&&now-snapT<2500,G=window.PH_GEST&&window.PH_GEST();
+  P.forEach(p=>{
+    if(G&&G.p===p){p.mir=false;return}
+    if(p.dh&&now<p.dh)return;
+    const s=live&&snap[p.id];
+    if(!s){if(p.mir){p.mir=false;p.mode='idle';p.idle=1;p.tw=null;p.seat=-1;if(p.sit){p.sit=false;p.pu.setSit(false)}}return}
+    p.mir=true;p.tw=null;const k=Math.min(1,dt*9);
+    if(Math.hypot(s[0]-p.x,s[1]-p.y)>200){p.x=s[0];p.y=s[1]}else{p.x+=(s[0]-p.x)*k;p.y+=(s[1]-p.y)*k}
+    p.face=s[2];p.mode=MODES[s[3]]||'idle';
+    const sit=!!s[4];if(sit!==!!p.sit){p.sit=sit;p.pu.setSit(sit)}
+    const sc=s[5]?'out':'home';if(p.scene!==sc){p.scene=sc;p.root.style.display=window.PH_SCENE()===sc?'':'none'}
+  });
+}
+requestAnimationFrame(mirror);
+/* who runs the pets right now: 'host', 'guest' (host is online and sending), or '' (on our own) */
+const role=()=>linked&&online?(isHost()?'host':(snap&&performance.now()-snapT<2500?'guest':'')):'';
+window.PH_ROLE=role;
+/* guest lifts a pet: send where the finger is a few times a second, and one last message on release */
+window.PH_HELD=(p,qy)=>{
+  if(role()!=='guest')return;
+  const n=performance.now();if(holdId===p.id&&n-hT<90)return;hT=n;holdId=p.id;
+  set(ref(db,'rooms/'+room+'/hold'),{id:p.id,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,qy:Math.round(qy||0),on:1,by:uid,ts:Date.now()}).catch(()=>{});
+};
+window.PH_DROPPED=(p,qy,rl)=>{
+  holdId='';if(rl!=='guest'||!linked)return;
+  set(ref(db,'rooms/'+room+'/hold'),{id:p.id,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,qy:Math.round(qy||0),on:0,by:uid,ts:Date.now()}).catch(()=>{});
+};
+/* taps / double taps / rubbing: a little event stream in rooms/<room>/fx, each phone plays the other's */
+window.PH_FXOUT=e=>{
+  if(!linked||!room||!uid)return;
+  const n=performance.now();if(e.t==='pet'){if(n-fxT<450)return;fxT=n}
+  const k=push(ref(db,'rooms/'+room+'/fx'),{t:e.t,id:e.id,by:uid,ts:Date.now()});
+  k.catch&&k.catch(()=>{});setTimeout(()=>remove(k).catch(()=>{}),8000);
+};
+async function startFx(){
+  if(fxOn)return;fxOn=true;
+  try{
+    const fr=ref(db,'rooms/'+room+'/fx'),o=(await get(fr)).val()||{};
+    fxBase=Object.keys(o).sort().pop()||'';
+    offs.push(onChildAdded(fr,x=>{const e=x.val();if(!e||e.by===uid||x.key<=fxBase)return;try{window.PH_FXIN(e)}catch(er){}},()=>{}));
+  }catch(e){fxOn=false}
+}
+/* shared pets: every pet (incl. drawn ones) lives in rooms/<room>/pets and appears on both phones */
+function uploadPet(r){
+  const D=window.PH_DB,meta=clean(r);delete meta.ib;delete meta.img;delete meta.parts;
+  set(ref(db,'rooms/'+room+'/pets/'+r.id),{meta:meta,img:r.img||'',parts:clean(r.parts||[]),profile:clean(D.pets[r.id]||{}),by:uid,ts:Date.now()}).catch(()=>{});
+}
+function addRemote(id,p){
+  const D=window.PH_DB;if(!D||!p||!p.meta||D.roster.some(r=>r.id===id))return;
+  const r=Object.assign({},p.meta,{id:id});delete r.ib;
+  if(p.img){r.img=p.img;r.parts=p.parts||[];incoming.add(id)}
+  SYN.add(id);
+  try{window.PH_ADD(r,p.profile||{})}catch(e){}
+  if(!D.roster.some(x=>x.id===id)){SYN.delete(id);incoming.delete(id)}
+  savS();
+}
+function changeRemote(id,p){
+  const D=window.PH_DB,r=D&&D.roster.find(x=>x.id===id);
+  if(!r||!p||p.by===uid||!p.img)return;
+  if(p.img===r.img&&JSON.stringify(p.parts||[])===JSON.stringify(r.parts||[]))return;
+  r.img=p.img;r.parts=p.parts||[];incoming.add(id);window.PH_APPLYPET(r);
+}
+function removeLocal(id){
+  const D=window.PH_DB;SYN.delete(id);savS();
+  if(D&&D.roster.some(r=>r.id===id))window.PH_BYE(id);
+}
+function petDiff(){
+  if(!linked||!petsReady||!window.PH_DB)return;
+  const D=window.PH_DB,ids=D.roster.map(r=>r.id);
+  D.roster.forEach(r=>{if(!SYN.has(r.id)&&!incoming.has(r.id)){SYN.add(r.id);uploadPet(r)}});
+  [...SYN].forEach(id=>{if(!ids.includes(id)){SYN.delete(id);remove(ref(db,'rooms/'+room+'/pets/'+id)).catch(()=>{})}});
+  savS();
+}
+async function startPets(){
+  if(petsOn||!window.PH_DB)return;petsOn=true;
+  try{
+    const pr=ref(db,'rooms/'+room+'/pets'),R=(await get(pr)).val()||{},D=window.PH_DB;
+    Object.keys(R).forEach(id=>{if(D.roster.some(r=>r.id===id))SYN.add(id);else if(SYN.has(id)){SYN.delete(id);remove(ref(db,'rooms/'+room+'/pets/'+id)).catch(()=>{})}else addRemote(id,R[id])});
+    D.roster.slice().forEach(r=>{if(!R[r.id]){if(SYN.has(r.id)){SYN.delete(r.id);window.PH_BYE(r.id)}else{SYN.add(r.id);uploadPet(r)}}});
+    savS();petsReady=true;
+    offs.push(onChildAdded(pr,x=>addRemote(x.key,x.val()),()=>{}));
+    offs.push(onChildChanged(pr,x=>changeRemote(x.key,x.val()),()=>{}));
+    offs.push(onChildRemoved(pr,x=>removeLocal(x.key),()=>{}));
+  }catch(e){petsOn=false}
+}
+function openLink(){
+  if(cur)return;
+  if(!uid){note(authErr?'Sign-in problem: '+authErr:'Connecting… try again in a moment');return}
+  cur=ov('');const c0=cur.close;cur.close=()=>{c0();cur=null};render();
+}
+
+window.PH_LINK=openLink;
+window.PH_SAVED=()=>{pushState();petDiff();photoDiff()};
+window.PH_PETSAVED=r=>{if(incoming.delete(r.id)||!linked||!petsReady)return;if(SYN.has(r.id))uploadPet(r)};
+onAuthStateChanged(auth,async u=>{
+  if(!u||uid===u.uid)return;
+  uid=u.uid;await ensureCode();watchInbox();if(room)watchRoom();render();
+});
+signInAnonymously(auth).catch(e=>{authErr=e.code||'unknown'});
 </script>
 </body></html>
