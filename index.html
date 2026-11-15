@@ -184,6 +184,8 @@ setTimeout(fin,16000);
       <!-- drawer -->
       <rect x="0" y="10" width="140" height="66" rx="8" fill="#FFD9A8" stroke="#E8A458" stroke-width="4"/>
       <path d="M6 43H134" stroke="#E8A458" stroke-width="3"/><circle cx="70" cy="27" r="3.5" fill="#E8A458"/><circle cx="70" cy="60" r="3.5" fill="#E8A458"/>
+    </g>
+    <g data-by="297.5" id="u-tank" transform="translate(352 220)">
       <!-- fish tank placeholder (hidden once the live aquarium is running) -->
       <g id="tkPh" transform="translate(12 -37) scale(1.521 .908) translate(-4 44)"><rect x="4" y="-44" width="76" height="52" rx="8" fill="#D6EEF8" fill-opacity=".55" stroke="#8FC3DB" stroke-width="4"/>
       <rect x="7" y="-26" width="70" height="31" rx="5" fill="#9FD6EE" fill-opacity=".8"/>
@@ -261,7 +263,7 @@ g0.innerHTML=s0;
 var KEY='pethome.v1',MAXPETS=20,DB={title:'sweet humm',photo:{a:'',b:''},pets:{},roster:[{id:'axo',type:'axo'},{id:'monkey',type:'monkey'}]};
 try{var sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){if(sv.title)DB.title=sv.title;if(sv.photo)DB.photo=sv.photo;if(sv.pets)DB.pets=sv.pets;if(sv.roster&&sv.roster.length)DB.roster=sv.roster}}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB));try{window.PH_SAVED&&window.PH_SAVED()}catch(e3){}}catch(e){try{note('Storage is full')}catch(e2){}}}
-window.PH_DB=DB;window.PH_SAVE=save;window.PH_NOTE=note;window.PH_ADD=addPet;window.PH_BYE=doBye;window.PH_APPLYPET=function(r){applyPet(r);putPet(r)};window.PH_PETS=function(){return pets};window.PH_GEST=function(){return gest};window.PH_SCENE=function(){return scene};window.PH_RENDER=renderPaint;window.PH_FURNGET=function(){var o={};U.forEach(function(u){if(u.dx||u.dy)o[u.k]=[Math.round(u.dx),Math.round(u.dy)]});return o};window.PH_FURN_SET=function(o){U.forEach(function(u){var v=o[u.k];setOff(u,v?+v[0]:0,v?+v[1]:0)});seatSync();saveL()};
+window.PH_DB=DB;window.PH_SAVE=save;window.PH_NOTE=note;window.PH_ADD=addPet;window.PH_BYE=doBye;window.PH_APPLYPET=function(r){applyPet(r);putPet(r)};window.PH_PETS=function(){return pets};window.PH_GEST=function(){return gest};window.PH_SCENE=function(){return scene};window.PH_RENDER=renderPaint;window.PH_FURNGET=function(){var o={};U.forEach(function(u){if(u.dx||u.dy)o[u.k]=[Math.round(u.dx),Math.round(u.dy)]});return o};window.PH_FURN_SET=function(o){if(o.tank&&!o.drawer)o.drawer=o.tank;U.forEach(function(u){var v=o[u.k];setOff(u,v?+v[0]:0,v?+v[1]:0)});seatSync();saveL()};
 /* pet images + parts live in IndexedDB; localStorage keeps only small metadata (img/parts are non-enumerable so JSON skips them) */
 var BLANK='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==',PH={},idbP=null;
 function hide(r,k,v){Object.defineProperty(r,k,{value:v,writable:true,configurable:true,enumerable:false})}
@@ -578,7 +580,7 @@ var fOn=$('fOn'),fOff=$('fOff'),glow=$('glow'),fire=true;
 function setFire(v,sv2){fire=v;fOn.style.display=v?'':'none';fOff.style.display=v?'none':'';glow.style.display=v?'':'none';if(sv2){try{localStorage.setItem('fire',v?'1':'0')}catch(e){}}}
 try{if(localStorage.getItem('fire')==='0')setFire(false)}catch(e){}
 $('fhit').addEventListener('click',function(){if(tapOK())setFire(!fire,true)});
-var tkO=document.createElement('div'),tkF=document.createElement('iframe'),tkM=$('tkMini'),tkMc=tkM.getContext('2d'),tkFo=$('tkFo'),tkPh=$('tkPh'),tkOpen=false,tkBusy=false,tkRun=false,tkShown=false,tkMf=-1,tkT0=null,tkWait=false,tkTf='';
+var tkO=document.createElement('div'),tkF=document.createElement('iframe'),tkM=$('tkMini'),tkMc=tkM.getContext('2d'),tkFo=$('tkFo'),tkPh=$('tkPh'),tkOpen=false,tkBusy=false,tkRun=false,tkShown=false,tkMf=-1,tkT0=null,tkWait=false,tkTf='',tkHold=false;
 tkF.style.cssText='width:100%;height:100%;border:0;display:block;background:transparent';tkF.title='Aquarium';
 function tkHide(){tkO.style.cssText='position:fixed;inset:0;z-index:9999;background:transparent;opacity:0;pointer-events:none'}
 function tkShow(){tkO.style.cssText='position:fixed;inset:0;z-index:9999;background:transparent;opacity:1'}
@@ -589,7 +591,7 @@ tkF.addEventListener('load',function(){tkRun=true;if(tkOpen)tkSend({t:'tankFull'
 window.addEventListener('load',function(){setTimeout(tkLoad,2500)});
 /* tap the tank: zoom the room into it, then the aquarium (tank only, transparent) takes over on top; the room keeps following its zoom/drag */
 $('tankhit').addEventListener('click',function(){if(!tapOK()||MV||tkBusy||tkOpen)return;
-  var r=tkFo.getBoundingClientRect();if(r.width<5)return;tkBusy=true;tkLoad();
+  var r=tkFo.getBoundingClientRect();if(r.width<5)return;tkBusy=true;tkLoad();musicDuck(true);
   var sr=svg.getBoundingClientRect(),vw=innerWidth,vh=innerHeight,s=vw/r.width,cx=r.left+r.width/2,cy=r.top+r.height/2;
   tkT0={tx:(vw/2-sr.left)-(cx-sr.left)*s,ty:(vh/2-sr.top)-(cy-sr.top)*s,s:s,l:sr.left,t:sr.top};
   ph.classList.add('zm');svg.style.willChange='transform';svg.style.transformOrigin='0 0';svg.style.transition='transform .55s cubic-bezier(.5,0,.2,1)';
@@ -597,10 +599,12 @@ $('tankhit').addEventListener('click',function(){if(!tapOK()||MV||tkBusy||tkOpen
   setTimeout(function(){tkTf='';tkOpen=true;tkShow();tkSend({t:'tankFull'})},500)});
 function tkFinish(){if(!tkWait)return;tkWait=false;tkFo.removeAttribute('visibility');tkHide();tkRun=false;
   svg.style.transition='transform .5s cubic-bezier(.3,0,.2,1)';svg.style.transform='none';
-  setTimeout(function(){ph.classList.remove('zm');svg.style.transition='';svg.style.willChange='';svg.style.transform='';svg.style.transformOrigin='';tkBusy=false;tkT0=null},540)}
+  setTimeout(function(){ph.classList.remove('zm');svg.style.transition='';svg.style.transform='';svg.style.transformOrigin='';tkBusy=false;tkT0=null;tkHold=false;musicDuck(false);
+    /* keep the room on its own layer a bit longer: dropping it in the same frame forced one big repaint (the lag + black boxes) */
+    setTimeout(function(){if(!tkBusy)svg.style.willChange=''},700)},540)}
 window.addEventListener('message',function(e){if(e.origin!==location.origin||e.source!==tkF.contentWindow)return;
   if(e.data==='tankFullReady')tkFo.setAttribute('visibility','hidden');
-  else if(e.data==='closeTank'){tkOpen=false;tkWait=true;setTimeout(tkFinish,900)}});
+  else if(e.data==='closeTank'){tkOpen=false;tkWait=true;tkHold=true;setTimeout(tkFinish,900)}});
 /* while the aquarium is open, move/scale the room behind it by the same amount as the aquarium camera, so the tank stays on the drawer */
 function tkFollow(){requestAnimationFrame(tkFollow);if(!tkOpen||!tkT0)return;
   try{var c=tkF.contentWindow.Aquarium.cam(),k=c[0]/c[5],vw=innerWidth,vh=innerHeight,T=tkT0,
@@ -634,7 +638,7 @@ requestAnimationFrame(tkCopy);
 /* ---------- move furniture (indoor) ---------- */
 var LK='pethome.layout',SX0=SEATX.slice(),SY0=SEAT_Y,MV=false,selU=null,drag=null,mvLE=null,mvRaf=0,mvT=0;
 function G(b){return [].slice.call(furn.querySelectorAll(':scope > [data-by="'+b+'"]'))}
-var U=[{k:'fire',els:G(309),ex:[$('glow')]},{k:'cab',els:G(296)},{k:'tank',els:G(297)},{k:'lamp',els:G(354)},{k:'sofa',els:G(312).concat(G(330))},{k:'plant',els:G(516)},{k:'bottle',els:[$('u-bottle')]},{k:'shelf',els:[$('u-shelf')]},{k:'paint',els:[$('paint')]}];
+var U=[{k:'fire',els:G(309),ex:[$('glow')]},{k:'cab',els:G(296)},{k:'drawer',els:G(297)},{k:'tank',els:[$('u-tank')]},{k:'lamp',els:G(354)},{k:'sofa',els:G(312).concat(G(330))},{k:'plant',els:G(516)},{k:'bottle',els:[$('u-bottle')]},{k:'shelf',els:[$('u-shelf')]},{k:'paint',els:[$('paint')]}];
 function setOff(u,dx,dy){u.dx=dx;u.dy=dy;
   u.els.concat(u.ex||[]).forEach(function(e){
     var t0=e.getAttribute('data-t0');
@@ -645,7 +649,8 @@ function setOff(u,dx,dy){u.dx=dx;u.dy=dy;
 function seatSync(){pets.forEach(function(p){if(p.seat>=0&&p.mode==='sit'){p.x=SEATX[p.seat];p.y=SEAT_Y}})}
 function saveL(){var o={};U.forEach(function(u){if(u.dx||u.dy)o[u.k]=[Math.round(u.dx),Math.round(u.dy)]});try{localStorage.setItem(LK,JSON.stringify(o))}catch(e){}try{window.PH_FURN&&window.PH_FURN(o)}catch(e5){}}
 U.forEach(function(u){u.dx=0;u.dy=0});
-try{var lo=JSON.parse(localStorage.getItem(LK)||'null');if(lo)U.forEach(function(u){var v=lo[u.k];if(v&&isFinite(v[0])&&isFinite(v[1]))setOff(u,+v[0],+v[1])})}catch(e){}
+try{var lo=JSON.parse(localStorage.getItem(LK)||'null');if(lo&&lo.tank&&!lo.drawer)lo.drawer=lo.tank;   /* old saves moved tank+drawer as one piece */
+if(lo)U.forEach(function(u){var v=lo[u.k];if(v&&isFinite(v[0])&&isFinite(v[1]))setOff(u,+v[0],+v[1])})}catch(e){}
 function wr(u){var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
   u.els.forEach(function(e){var r=e.getBoundingClientRect();if(!r.width&&!r.height)return;
     var a=pt({clientX:r.left,clientY:r.top}),b=pt({clientX:r.right,clientY:r.bottom});
@@ -761,7 +766,7 @@ function ddRender(){
   if(ddSub==='add'&&!full)h+='<div class="sub"><button data-a="draw">✏️ Draw it</button><button data-a="photo">📷 From a photo</button><button data-a="clone">🐒 Existing pet</button></div>';
   h+='<button data-a="byem"'+(n<=1?' disabled':'')+'>👋 Say goodbye '+(ddSub==='bye'?'▴':'▾')+'</button>';
   if(ddSub==='bye'&&n>1)h+='<div class="sub">'+LIST.map(function(L){return '<button data-a="bye" data-id="'+L.id+'">'+esc(DB.pets[L.id].name||'Pet')+'</button>'}).join('')+'</div>';
-  h+='<button data-a="link">🔗 Link with friend</button>';h+='<button data-a="mv">🛋️ Move furniture</button><button data-a="mvreset">↩️ Reset furniture</button>';
+  h+='<button data-a="set">⚙️ Settings</button>';h+='<button data-a="mv">🛋️ Move furniture</button><button data-a="mvreset">↩️ Reset furniture</button>';
   dd.innerHTML=h}
 function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function ddClose(){dd.classList.remove('on');ddSub=''}
@@ -778,9 +783,49 @@ dd.addEventListener('click',function(e){var b=e.target.closest('button');if(!b||
   else if(a==='photo'){ddClose();photoPet()}
   else if(a==='clone'){ddClose();clonePet()}
   else if(a==='bye'){ddClose();byePet(b.dataset.id)}
-  else if(a==='link'){ddClose();if(window.PH_LINK)window.PH_LINK();else note('Needs internet to link')}
+  else if(a==='set'){ddClose();openSettings()}
   else if(a==='mv'){ddClose();setMV(true)}
   else if(a==='mvreset'){ddClose();if(confirm('Put all furniture back in the default places?')){U.forEach(function(u){setOff(u,0,0)});seatSync();saveL()}}});
+/* ---------- background music + settings ---------- */
+/* Put songs in assets/music/ as music_1.mp3, music_2.mp3 ... and change MUSIC_COUNT to how many you have. */
+var MUSIC_COUNT=4,MUSIC_DIR='assets/music/music_',MUSIC_EXT='.mp3',MKEY='pethome.music';
+var MU={vol:.4,mute:false,duck:1,duckTo:1,fade:0,cur:-1,fails:0,started:false,hid:false};
+try{var ms=JSON.parse(localStorage.getItem(MKEY)||'null');if(ms){if(isFinite(ms.vol))MU.vol=Math.max(0,Math.min(1,+ms.vol));MU.mute=!!ms.mute}}catch(e){}
+var mA=new Audio();mA.preload='auto';
+function musicPlay(){try{var p=mA.play();if(p&&p.catch)p.catch(function(){})}catch(e){}}
+function musicSave(){try{localStorage.setItem(MKEY,JSON.stringify({vol:MU.vol,mute:MU.mute}))}catch(e){}}
+function musicApply(){try{mA.volume=MU.mute?0:Math.max(0,Math.min(1,MU.vol*MU.duck))}catch(e){}}
+function musicNext(){ /* a random song, never the same one twice in a row */
+  if(MUSIC_COUNT<1)return;var r;
+  if(MU.cur<0||MUSIC_COUNT<2)r=Math.floor(Math.random()*MUSIC_COUNT);
+  else{r=Math.floor(Math.random()*(MUSIC_COUNT-1));if(r>=MU.cur)r++}
+  MU.cur=r;mA.src=MUSIC_DIR+(r+1)+MUSIC_EXT;musicApply();musicPlay()}
+mA.addEventListener('ended',function(){MU.fails=0;musicNext()});
+mA.addEventListener('playing',function(){MU.fails=0});
+mA.addEventListener('error',function(){if(++MU.fails<MUSIC_COUNT)musicNext()});   /* missing/broken file: skip it (stops if none work) */
+var MGEST=['pointerup','touchend','click','keydown'];
+function musicStart(){if(MU.started)return;MU.started=true;MGEST.forEach(function(t){document.removeEventListener(t,musicStart,true)});if(!MU.mute)musicNext()}
+MGEST.forEach(function(t){document.addEventListener(t,musicStart,true)});   /* browsers only allow sound after the first tap */
+function musicMute(m){MU.mute=m;musicSave();musicApply();
+  if(m)mA.pause();else if(MU.started){if(MU.cur>=0)musicPlay();else musicNext()}}
+function musicDuck(on){MU.duckTo=on?.1:1;if(!MU.fade)MU.fade=setInterval(musicFade,40)}   /* aquarium open: fade to 10% of the slider */
+function musicFade(){var d=MU.duckTo-MU.duck;if(Math.abs(d)<.02){MU.duck=MU.duckTo;clearInterval(MU.fade);MU.fade=0}else MU.duck+=d*.12;musicApply()}
+document.addEventListener('visibilitychange',function(){if(!MU.started||MU.mute)return;
+  if(document.hidden){MU.hid=!mA.paused;mA.pause()}else if(MU.hid){MU.hid=false;musicPlay()}});
+musicApply();
+function openSettings(){
+  var o=overlay(),B=o.box;B.innerHTML='<div style="font-size:22px">⚙️ Settings</div>';
+  var lk=btn('🔗 Link with friend','',function(){o.close();if(window.PH_LINK)window.PH_LINK();else note('Needs internet to link')});
+  lk.style.cssText='display:block;width:100%;margin-top:12px';B.appendChild(lk);
+  var mh=document.createElement('div');mh.style.cssText='margin-top:16px;text-align:left';mh.textContent='🎵 Music volume';B.appendChild(mh);
+  var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;margin-top:6px';
+  var mb=btn(MU.mute?'🔇':'🔊','',function(){musicMute(!MU.mute);mb.textContent=MU.mute?'🔇':'🔊'});mb.style.padding='6px 12px';
+  var sl=document.createElement('input');sl.type='range';sl.min=0;sl.max=100;sl.value=Math.round(MU.vol*100);sl.style.cssText='flex:1;min-width:0;accent-color:#E8A458';
+  sl.addEventListener('input',function(){MU.vol=sl.value/100;musicApply()});sl.addEventListener('change',musicSave);
+  row.appendChild(mb);row.appendChild(sl);B.appendChild(row);
+  var r2=document.createElement('div');r2.className='row2';
+  r2.appendChild(btn('⏭ Next song','',function(){if(MU.mute){musicMute(false);mb.textContent='🔊'}else musicNext()}));
+  r2.appendChild(btn('Close','pri',o.close));B.appendChild(r2)}
 /* ---------- add / remove pets ---------- */
 function overlay(){var o=document.createElement('div');o.className='pxo';var b=document.createElement('div');b.className='pxb';o.appendChild(b);ph.appendChild(o);
   o.addEventListener('pointerdown',function(e){e.stopPropagation()});return {box:b,close:function(){o.remove()}}}
@@ -1088,6 +1133,7 @@ function upd(p,dt){
 var last=0;
 function loop(ts){
   var dt=Math.min(.05,(ts-last)/1000||0);last=ts;
+  if(tkHold){requestAnimationFrame(loop);return}   /* room animation rests while it zooms back out, so the repaint has the whole frame */
   if(!sw){if(Math.abs(camV)>2){cam+=camV*dt;camV*=Math.exp(-5*dt);var c2=Math.max(-CL,Math.min(CL,cam));if(c2!==cam){cam=c2;camV=0}}else camV=0}
   if(gest&&gest.held&&gest.vx!==undefined){if(gest.vx<50)cam=Math.max(-CL,cam-260*dt);else if(gest.vx>VW-50)cam=Math.min(CL,cam+260*dt);gest.p.x=gest.vx-OX+cam;clampXY(gest.p,300)}
   if(Math.abs(cam-lastCam)>.05){lastCam=cam;world.setAttribute('transform','translate('+(OX-cam).toFixed(1)+' 0)')}
