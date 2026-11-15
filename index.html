@@ -788,7 +788,7 @@ dd.addEventListener('click',function(e){var b=e.target.closest('button');if(!b||
   else if(a==='mvreset'){ddClose();if(confirm('Put all furniture back in the default places?')){U.forEach(function(u){setOff(u,0,0)});seatSync();saveL()}}});
 /* ---------- background music + settings ---------- */
 /* Put songs in assets/music/ as music_1.mp3, music_2.mp3 ... and change MUSIC_COUNT to how many you have. */
-var MUSIC_COUNT=4,MUSIC_DIR='assets/music/music_',MUSIC_EXT='.mp3',MKEY='pethome.music';
+var MUSIC_COUNT=5,MUSIC_DIR='assets/music/music_',MUSIC_EXT='.mp3',MKEY='pethome.music';
 var MU={vol:.4,mute:false,duck:1,duckTo:1,fade:0,cur:-1,fails:0,started:false,hid:false};
 try{var ms=JSON.parse(localStorage.getItem(MKEY)||'null');if(ms){if(isFinite(ms.vol))MU.vol=Math.max(0,Math.min(1,+ms.vol));MU.mute=!!ms.mute}}catch(e){}
 var mA=new Audio();mA.preload='auto';
