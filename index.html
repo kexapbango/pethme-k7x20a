@@ -261,8 +261,8 @@ var g0=$('chk'),s0='<rect x="-34" y="-34" width="68" height="68" rx="5" fill="#f
 for(var r=0;r<4;r++)for(var c=0;c<4;c++)if((r+c)%2===0)s0+='<rect x="'+(-30+c*15)+'" y="'+(-30+r*15)+'" width="15" height="15" fill="#222"/>';
 g0.innerHTML=s0;
 /* ---------- saved data ---------- */
-var KEY='pethome.v1',MAXPETS=20,DB={title:'sweet humm',photo:{a:'',b:''},pets:{},roster:[{id:'axo',type:'axo'},{id:'monkey',type:'monkey'}]};
-try{var sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){if(sv.title)DB.title=sv.title;if(sv.photo)DB.photo=sv.photo;if(sv.pets)DB.pets=sv.pets;if(sv.roster&&sv.roster.length)DB.roster=sv.roster}}catch(e){}
+var KEY='pethome.v1',MAXPETS=20,DB={title:'sweet humm',photo:{a:'',b:''},pets:{},roster:[{id:'axo',type:'axo'},{id:'monkey',type:'monkey'}],fish:[],fishNames:{}};
+try{var sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){if(sv.title)DB.title=sv.title;if(sv.photo)DB.photo=sv.photo;if(sv.pets)DB.pets=sv.pets;if(Array.isArray(sv.fish))DB.fish=sv.fish;if(sv.fishNames&&typeof sv.fishNames==='object')DB.fishNames=sv.fishNames;if(sv.roster&&sv.roster.length)DB.roster=sv.roster}}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB));try{window.PH_SAVED&&window.PH_SAVED()}catch(e3){}}catch(e){try{note('Storage is full')}catch(e2){}}}
 window.PH_DB=DB;window.PH_SAVE=save;window.PH_NOTE=note;window.PH_ADD=addPet;window.PH_BYE=doBye;window.PH_APPLYPET=function(r){applyPet(r);putPet(r)};window.PH_PETS=function(){return pets};window.PH_GEST=function(){return gest};window.PH_SCENE=function(){return scene};window.PH_RENDER=renderPaint;window.PH_FURNGET=function(){var o={};U.forEach(function(u){if(u.dx||u.dy)o[u.k]=[Math.round(u.dx),Math.round(u.dy)]});return o};window.PH_FURN_SET=function(o){if(o.tank&&!o.drawer)o.drawer=o.tank;U.forEach(function(u){var v=o[u.k];setOff(u,v?+v[0]:0,v?+v[1]:0)});seatSync();saveL()};
 /* pet images + parts live in IndexedDB; localStorage keeps only small metadata (img/parts are non-enumerable so JSON skips them) */
@@ -597,6 +597,41 @@ function tkSend(m){try{tkF.contentWindow.postMessage(m,location.origin)}catch(e)
 function tkLoad(){if(!tkF.getAttribute('src'))tkF.src='aquarium.html'}
 tkF.addEventListener('load',function(){tkRun=true;if(tkOpen)tkSend({t:'tankFull'})});   /* the aquarium starts running by itself in its small view */
 window.addEventListener('load',function(){setTimeout(tkLoad,2500)});
+/* ---------- fish: the named fish that live in the aquarium ----------
+   The tank (aquarium.html) holds the live fish. This part keeps what must survive a reload and puts it back once the tank is built:
+   DB.fish      fish the player added  {id,name,sp[,look]} = a built-in species   |   {id,name,custom:1,face} = drawn / photo fish (picture in IndexedDB key 'fish:<id>', r.img is not saved to localStorage)
+   DB.fishNames new names for the built-in fish that come with the tank   {fishId:name}
+   window.PH_FISH is what the add-fish menu and the fish book use. */
+var MAXFISH=24;
+DB.fish.forEach(function(r){if(r.custom&&!r.img)hide(r,'img','')});
+function fishAq(){try{var A=tkF.contentWindow&&tkF.contentWindow.Aquarium;return A&&A.isReady()?A:null}catch(e){return null}}
+function fishName(n,d){n=String(n==null?'':n).trim().slice(0,14);return n||d}
+function fishPic(r){return r.img?Promise.resolve(r.img):idbOp('readonly',function(st){return st.get('fish:'+r.id)}).then(function(rec){if(rec&&rec.img)hide(r,'img',rec.img);return r.img||''},function(){return ''})}
+function fishApply(){var A=fishAq();if(!A)return;var have={};A.listFish().forEach(function(f){have[f.fid]=1});
+  DB.fish.forEach(function(r){if(have[r.id])return;
+    if(r.custom)fishPic(r).then(function(im){if(im)A.addFish({fid:r.id,name:r.name,img:im,face:r.face})});
+    else A.addFish({fid:r.id,name:r.name,sp:r.sp,look:r.look})});
+  Object.keys(DB.fishNames).forEach(function(id){if(have[id])A.renameFish(id,DB.fishNames[id])})}
+window.addEventListener('message',function(e){if(e.origin!==location.origin||e.source!==tkF.contentWindow)return;if(e.data&&e.data.t==='aqReady')fishApply()});
+window.PH_FISH={max:MAXFISH,
+  count:function(){return DB.fish.length},
+  /* add({name,sp[,look]}) or add({name,img:dataURL,face:1|-1}) -> Promise of the new id (null if refused) */
+  add:function(o){
+    if(DB.fish.length>=MAXFISH){note('Fish limit reached');return Promise.resolve(null)}
+    var r={id:'f'+Date.now().toString(36)+Math.floor(Math.random()*99),name:fishName(o.name,'Fishy')};
+    if(o.img){r.custom=1;r.face=o.face===-1?-1:1;hide(r,'img',o.img);
+      return idbOp('readwrite',function(st){return st.put({img:o.img},'fish:'+r.id)}).then(function(){DB.fish.push(r);save();fishApply();return r.id},function(){note('Storage is full');return null})}
+    r.sp=o.sp;if(o.look)r.look=o.look;DB.fish.push(r);save();fishApply();return Promise.resolve(r.id)},
+  /* only fish the player added can be sent away; the built-in ones can be renamed */
+  remove:function(id){var i=DB.fish.findIndex(function(r){return r.id===id});if(i<0)return false;var r=DB.fish.splice(i,1)[0];
+    if(r.custom)idbOp('readwrite',function(st){return st.delete('fish:'+id)}).catch(function(){});
+    save();var A=fishAq();if(A)A.removeFish(id);return true},
+  rename:function(id,name){name=fishName(name,'');if(!name)return false;var r=DB.fish.find(function(q){return q.id===id});
+    if(r)r.name=name;else DB.fishNames[id]=name;save();var A=fishAq();if(A)A.renameFish(id,name);return true},
+  /* [{id,name,own,custom,sp}] for every fish in the tank, or null while the tank is still loading (try again after a moment) */
+  list:function(){tkLoad();var A=fishAq();return A?A.listFish().map(function(f){return {id:f.fid,name:f.name,own:DB.fish.some(function(r){return r.id===f.fid}),custom:f.custom,sp:f.sp}}):null},
+  thumb:function(id,px){var A=fishAq();return A?A.thumb(id,px):''},
+  species:function(){var A=fishAq();return A?A.species():null}};
 /* tap the tank: zoom the room into it, then the aquarium (tank only, transparent) takes over on top; the room keeps following its zoom/drag */
 /* where the tank is on screen right now, and how the room maps to the screen (needs the room unzoomed) */
 function tkMeasure(){var r=tkFo.getBoundingClientRect(),sr=svg.getBoundingClientRect();if(r.width<5)return null;
@@ -784,6 +819,9 @@ function ddRender(){
   h+='<button data-a="prof">🐾 Pet profiles</button>';
   h+='<button data-a="addm"'+(full?' disabled':'')+'>➕ Add pet <small>'+n+'/'+MAXPETS+(full?' full':'')+'</small> '+(ddSub==='add'?'▴':'▾')+'</button>';
   if(ddSub==='add'&&!full)h+='<div class="sub"><button data-a="draw">✏️ Draw it</button><button data-a="photo">📷 From a photo</button><button data-a="clone">🐒 Existing pet</button></div>';
+  var nf=PH_FISH.count(),fullF=nf>=PH_FISH.max;
+  h+='<button data-a="fishm"'+(fullF?' disabled':'')+'>🐟 Add fish <small>'+nf+'/'+PH_FISH.max+(fullF?' full':'')+'</small> '+(ddSub==='fish'?'▴':'▾')+'</button>';
+  if(ddSub==='fish'&&!fullF)h+='<div class="sub"><button data-a="fdraw">✏️ Draw it</button><button data-a="fphoto">📷 From a photo</button><button data-a="fspecies">🐠 Existing fish</button></div>';
   h+='<button data-a="byem"'+(n<=1?' disabled':'')+'>👋 Say goodbye '+(ddSub==='bye'?'▴':'▾')+'</button>';
   if(ddSub==='bye'&&n>1)h+='<div class="sub">'+LIST.map(function(L){return '<button data-a="bye" data-id="'+L.id+'">'+esc(DB.pets[L.id].name||'Pet')+'</button>'}).join('')+'</div>';
   h+='<button data-a="set">⚙️ Settings</button>';h+='<button data-a="mv">🛋️ Move furniture</button><button data-a="mvreset">↩️ Reset furniture</button>';
@@ -800,6 +838,10 @@ dd.addEventListener('click',function(e){var b=e.target.closest('button');if(!b||
   else if(a==='addm'){ddSub=ddSub==='add'?'':'add';ddRender()}
   else if(a==='byem'){ddSub=ddSub==='bye'?'':'bye';ddRender()}
   else if(a==='draw'){ddClose();drawPet()}
+  else if(a==='fishm'){ddSub=ddSub==='fish'?'':'fish';ddRender()}
+  else if(a==='fdraw'){ddClose();drawFish()}
+  else if(a==='fphoto'){ddClose();photoFish()}
+  else if(a==='fspecies'){ddClose();pickFish()}
   else if(a==='photo'){ddClose();photoPet()}
   else if(a==='clone'){ddClose();clonePet()}
   else if(a==='bye'){ddClose();byePet(b.dataset.id)}
@@ -1034,6 +1076,38 @@ function openEditor(cfg){
   ui();return {canvas:mc,close:o.close}}
 /* draw */
 function drawPet(){openEditor({title:'Draw your pet',onDone:function(cv){var t=trim(cv);if(!t){note('Draw something first!');return false}finishCustom(toPet(t),'draw','Doodle','Drawn friend')}})}
+/* ---------- add fish: draw it / from a photo / an existing species (data side: window.PH_FISH) ---------- */
+var FLAB={pink:'Pink fish',pale:'Pale fish',orange:'Orange fish',blue:'Blue fish',puffer:'Pufferfish',taiyaki:'Taiyaki',octopus:'Octopus',seahorse:'Seahorse',red:'Red fish',green:'Green fish',eel:'Eel',goldfish:'Goldfish',rudd:'Rudd',crab:'Crab',hermit:'Hermit crab',starfish:'Starfish'},
+    FNAMES=['Bubbles','Finn','Coral','Splash','Pearl','Ripple','Goldie','Wave','Sandy','Misty','Pebble','Sunny','Kelp','Dash','Reef'];
+function fishFull(){if(PH_FISH.count()>=PH_FISH.max){note('Fish limit reached');return true}return false}
+function fishRnd(){return FNAMES[Math.floor(Math.random()*FNAMES.length)]}
+function toFish(src){ /* any drawable -> trimmed transparent canvas, longest side max 256, same shape as the drawing */
+  var t=trim(src);if(!t)return null;var k=Math.min(1,256/Math.max(t.width,t.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(t.width*k));c.height=Math.max(1,Math.round(t.height*k));
+  var x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(t,0,0,c.width,c.height);return c}
+function drawFish(){if(fishFull())return;openEditor({title:'Draw your fish',onDone:function(cv){var c=toFish(cv);if(!c){note('Draw something first!');return false}fishDlg(c)}})}
+function photoFish(){if(fishFull())return;pfFish=true;pfin.value='';pfin.click()}
+function finishFish(cur){var c=toFish(cur);if(!c){note('Nothing left to use');return}fishDlg(c)}
+/* last step for a drawn / photo fish: which way does the picture look (so it swims forwards), and its name */
+function fishDlg(c){
+  var o=overlay(),face=1;o.box.innerHTML='<div>Your new fish</div>';
+  var pv=document.createElement('canvas');pv.width=240;pv.height=160;pv.style.cssText='width:220px;height:147px;aspect-ratio:auto;margin:8px auto 0;display:block';
+  var k=Math.min(220/c.width,140/c.height,1.5),x=pv.getContext('2d');x.drawImage(c,(240-c.width*k)/2,(160-c.height*k)/2,c.width*k,c.height*k);o.box.appendChild(pv);
+  var q=document.createElement('div');q.style.cssText='font-size:14px;margin-top:8px';q.textContent='Which way is it looking?';o.box.appendChild(q);
+  var fr=document.createElement('div');fr.className='row2';o.box.appendChild(fr);
+  var bL=btn('◀ Left','',function(){face=-1;sync()}),bR=btn('Right ▶','pri',function(){face=1;sync()});fr.appendChild(bL);fr.appendChild(bR);
+  function sync(){bL.className='btn'+(face<0?' pri':'');bR.className='btn'+(face>0?' pri':'')}
+  var inp=document.createElement('input');inp.className='nm';inp.style.font='700 17px Nunito,"Trebuchet MS",system-ui,sans-serif';inp.maxLength=14;inp.placeholder='Name your fish';inp.value=fishRnd();o.box.appendChild(inp);
+  var r2=document.createElement('div');r2.className='row2';o.box.appendChild(r2);
+  function go(){var nm=inp.value.trim()||fishRnd();o.close();PH_FISH.add({name:nm,img:enc(c),face:face}).then(function(id){if(id)note(nm.slice(0,14)+' joined the aquarium 🐟')})}
+  r2.appendChild(btn('Cancel','',o.close));r2.appendChild(btn('Add fish','pri',go));inp.addEventListener('keydown',function(e){if(e.key==='Enter')go()})}
+/* existing species: pick one (small pictures come from the tank), then name it */
+function pickFish(){
+  if(fishFull())return;var sp=PH_FISH.species();if(!sp){note('The aquarium is still waking up, try again in a moment');PH_FISH.list();return}
+  var o=overlay();o.box.innerHTML='<div>Which fish?</div>';var g=document.createElement('div');g.className='row2';
+  sp.forEach(function(s){var lab=FLAB[s.id]||s.id,b=document.createElement('button');b.className='pick';b.style.cssText='width:96px;padding:6px';
+    b.innerHTML='<img style="width:80px;height:56px" src="'+PH_FISH.thumb(s.id+'_0',160)+'" alt=""><span style="font-size:13px">'+esc(lab)+'</span>';
+    b.addEventListener('click',function(){o.close();ask('Name your '+lab.toLowerCase(),fishRnd(),function(nm){PH_FISH.add({name:nm,sp:s.id}).then(function(id){if(id)note(nm.slice(0,14)+' joined the aquarium 🐟')})})});g.appendChild(b)});
+  o.box.appendChild(g);o.box.appendChild(Object.assign(btn('Cancel','',o.close),{style:'margin-top:10px'}))}
 /* advanced: draw parts on top of the pet */
 var PT={eye:['👁️','Eye','blinks'],arm:['💪','Arm','swings'],leg:['🦵','Leg','swings when walking'],tail:['🐾','Tail','wags'],ear:['👂','Ear','twitches'],mouth:['👄','Mouth','stays put'],acc:['🎩','Extra','rides along']};
 function loadImg(u){return new Promise(function(ok,no){var i=new Image();i.onload=function(){ok(i)};i.onerror=no;i.src=u})}
@@ -1071,20 +1145,21 @@ function startPart(r,k){
     putPet(r);applyPet(r);setTimeout(function(){partsDlg(r)},0)}})},function(){note("Couldn't open this pet")})}
 /* photo */
 var pfin=document.createElement('input');pfin.type='file';pfin.accept='image/*';pfin.style.display='none';document.body.appendChild(pfin);
-function photoPet(){pfin.value='';pfin.click()}
-pfin.addEventListener('change',function(){var f=pfin.files[0];if(!f)return;var u=URL.createObjectURL(f),im=new Image();
+var pfFish=false;   /* true while the photo being picked is for a fish, not a pet */
+function photoPet(){pfFish=false;pfin.value='';pfin.click()}
+pfin.addEventListener('change',function(){var f=pfin.files[0];if(!f)return;var fm=pfFish;pfFish=false;var u=URL.createObjectURL(f),im=new Image();
   im.onload=function(){var big=Math.max(im.width,im.height),k=Math.min(1,768/big),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);
-    c.toBlob(function(bl){URL.revokeObjectURL(u);photoDlg(c,bl)},'image/png')};
+    c.toBlob(function(bl){URL.revokeObjectURL(u);photoDlg(c,bl,fm)},'image/png')};
   im.onerror=function(){note("Couldn't open that image")};im.src=u});
 function circleCrop(c){var s=Math.min(c.width,c.height),o=document.createElement('canvas');o.width=o.height=256;var x=o.getContext('2d');
   x.beginPath();x.arc(128,128,122,0,6.2832);x.closePath();x.save();x.clip();x.drawImage(c,(c.width-s)/2,(c.height-s)/2,s,s,6,6,244,244);x.restore();
   x.lineWidth=8;x.strokeStyle='#fff';x.beginPath();x.arc(128,128,122,0,6.2832);x.stroke();return o}
-function photoDlg(c,blob){
-  var o=overlay(),cur=circleCrop(c),cut=null;o.box.innerHTML='<div>Photo pet</div>';
+function photoDlg(c,blob,fish){
+  var o=overlay(),cur=fish?c:circleCrop(c),cut=null;o.box.innerHTML='<div>'+(fish?'Photo fish':'Photo pet')+'</div>';
   var pv=document.createElement('canvas');pv.width=pv.height=256;pv.style.cssText='width:200px;height:200px;margin:8px auto 0;display:block;border:3px solid #E8A458;border-radius:14px';
   pv.style.backgroundImage='linear-gradient(45deg,#eee 25%,transparent 25%,transparent 75%,#eee 75%),linear-gradient(45deg,#eee 25%,transparent 25%,transparent 75%,#eee 75%)';pv.style.backgroundSize='20px 20px';pv.style.backgroundPosition='0 0,10px 10px';
-  o.box.appendChild(pv);function draw(cc){var x=pv.getContext('2d');x.clearRect(0,0,256,256);x.drawImage(cc,0,0)}draw(cur);
-  var msg=document.createElement('div');msg.style.cssText='font-size:13px;font-weight:700;opacity:.8;margin-top:6px;min-height:18px';o.box.appendChild(msg);
+  o.box.appendChild(pv);function draw(cc){var x=pv.getContext('2d'),k=Math.min(256/cc.width,256/cc.height);x.clearRect(0,0,256,256);x.drawImage(cc,(256-cc.width*k)/2,(256-cc.height*k)/2,cc.width*k,cc.height*k)}draw(cur);
+  var msg=document.createElement('div');msg.style.cssText='font-size:13px;font-weight:700;opacity:.8;margin-top:6px;min-height:18px';o.box.appendChild(msg);if(fish)msg.textContent='Cut out the fish so only it is left';
   var r=document.createElement('div');r.className='row2';o.box.appendChild(r);
   var sl=document.createElement('input');sl.type='range';sl.min=15;sl.max=120;sl.value=45;sl.style.cssText='width:100%;margin-top:8px;display:none';o.box.insertBefore(sl,r);
   var tm;function runLocal(){cut=localCut(c,+sl.value);if(cut){cur=cut;draw(cur);msg.textContent='Slide to cut more or less of the background'}else msg.textContent="Couldn't find a background to remove"}
@@ -1095,9 +1170,9 @@ function photoDlg(c,blob){
     bc.disabled=true;sl.style.display='none';msg.textContent='Cutting out… first time can take a minute';
     removeBg(blob).then(function(res){cut=res;cur=res;draw(cur);msg.textContent='Done!'},function(e){msg.textContent='Online cut-out failed ('+((e&&e.message)||e)+'). Try "Remove background" instead.'})
       .then(function(){bc.disabled=false})});
-  r.appendChild(bl);r.appendChild(bc);  r.appendChild(btn('⭕ Round photo','',function(){cur=circleCrop(c);draw(cur)}));
+  r.appendChild(bl);r.appendChild(bc);  if(!fish)r.appendChild(btn('⭕ Round photo','',function(){cur=circleCrop(c);draw(cur)}));
   var r2=document.createElement('div');r2.className='row2';o.box.appendChild(r2);
-  r2.appendChild(btn('Cancel','',o.close));r2.appendChild(btn('Use it','pri',function(){o.close();finishCustom(cur,'photo','Buddy','Photo friend')}))}
+  r2.appendChild(btn('Cancel','',o.close));r2.appendChild(btn('Use it','pri',function(){o.close();if(fish)finishFish(cur);else finishCustom(cur,'photo','Buddy','Photo friend')}))}
 function localCut(src,tol){
   var k=Math.min(1,320/Math.max(src.width,src.height)),W=Math.round(src.width*k),H=Math.round(src.height*k),c=document.createElement('canvas');c.width=W;c.height=H;
   var x=c.getContext('2d');x.drawImage(src,0,0,W,H);var im=x.getImageData(0,0,W,H),d=im.data,i,n=0,R=0,G=0,B=0;

@@ -67,6 +67,8 @@ var EDGE={"a":[8,9,8,7,8],"b":[8,7,8,7,8],"c":[4,4,4,4,4],"d":[4,4,4,4,4],"e":[8
 var ATLAS=new Image();
 function sprW(n){return MAN[n][2]}
 function sprH(n,w){return w*MAN[n][3]/MAN[n][2]}
+/* height of a look at width w: custom looks carry their own image (L.img) + aspect (L.ar), atlas looks use the sprite */
+function lh(L,w){return L.img?w*L.ar:sprH(L.body,w)}
 function drawSpr(ctx,n,x,y,w,ax,ay){var m=MAN[n],h=w*m[3]/m[2];ctx.drawImage(ATLAS,m[0],m[1],m[2],m[3],x-w*ax,y-h*ay,w,h)}
 
 /* ============================ 3. LOOKS =================================== */
@@ -129,6 +131,9 @@ var SPECIES=[
   stomach:[9,11],extra:12,greed:.3,digest:.33,react:[.2,.5],chase:2.3,mouth:[.42,.1],recover:'faint',faintRot:.5},
  {id:'rudd',   looks:['rudd'],  kind:'swim',n:1,w:340,speed:[65,90],depth:[.25,.65],accel:2,turn:6,pause:[.25,.8,2.2],hop:900,
   stomach:[10,12],extra:12,greed:.08,digest:.33,react:[.15,.45],chase:2.3,mouth:[.46,.05],recover:'faint',faintRot:.5},
+ /* player-made fish (drawn / photo): image + facing come from the main game, see Aquarium.addFish. n:0 = never auto-spawned */
+ {id:'_custom',custom:1,looks:[],kind:'swim',n:0,w:125,speed:[55,80],depth:[.15,.6],accel:1.9,turn:6,pause:[.3,1,2.4],hop:850,
+  stomach:[9,11],extra:12,greed:.1,digest:.33,react:[.15,.45],chase:2.3,mouth:[.42,.05],recover:'faint',faintRot:.5},
  /* ground creatures */
  {id:'crab',   looks:['crab'],  kind:'crawl',scav:1,clean:.012,style:'sidestep',n:1,w:150,speed:[34,48],range:520,pause:[.6,1.2,3.5],step:16,
   stomach:[9,11],extra:14,greed:.05,digest:.33,react:[.3,.7],chase:2.2,recover:'faint',faintRot:.9},
@@ -230,9 +235,14 @@ function pick(f){
   var by=bandY(f);f.tx=cl(f.x+(Math.random()<.5?-1:1)*R(sp.hop*.3,sp.hop),b[0],b[1]);f.ty=R(by[0],by[1]);
   if(f.kind==='bob')f.ty=cl(f.y+R(-90,90),by[0],by[1]);
 }
-function spawn(sp,leader){
-  var look=sp.looks[Math.floor(Math.random()*sp.looks.length)],L=LOOKS[look],w=sp.w*R(.92,1.08);
-  var f={sp:sp,L:L,look:look,kind:sp.kind,w:w,h:sprH(L.body,w),t:R(0,9),ph:R(0,6),mode:'live',skel:false,
+/* every fish has an id (fid) and a name; names are not drawn in the tank, the main game's fish book shows them */
+var NAMES=['Bubbles','Finn','Coral','Splash','Nemo','Pearl','Ripple','Marlin','Dory','Squirt','Goldie','Bubba','Wave','Sandy','Neptune','Misty','Tide','Pebble','Flipper','Sunny','Shelly','Kelp','Jelly','Skipper','Dash','Gill','Minnow','Reef','Waffle','Mochi'];
+function autoName(fid){var h=0,i,k,used={};for(i=0;i<fish.length;i++)used[fish[i].name]=1;for(i=0;i<fid.length;i++)h=(h*31+fid.charCodeAt(i))>>>0;
+  for(k=0;k<NAMES.length;k++){var n=NAMES[(h+k)%NAMES.length];if(!used[n])return n}return NAMES[h%NAMES.length]+' '+(fish.length+1)}
+function spawn(sp,leader,o){
+  o=o||{};var look=o.look||sp.looks[Math.floor(Math.random()*sp.looks.length)],L=o.L||LOOKS[look],w=o.w||sp.w*R(.92,1.08),
+    fid=o.fid||('x'+Date.now().toString(36)+Math.floor(R(0,999)));
+  var f={sp:sp,L:L,look:look,fid:fid,name:o.name||autoName(fid),kind:sp.kind,w:w,h:lh(L,w),t:R(0,9),ph:R(0,6),mode:'live',skel:false,
     sp0:R(sp.speed[0],sp.speed[1]),mood:1,moodT:R(3,9),react:R(sp.react[0],sp.react[1]),rt:R(0,1),
     cap:R(sp.stomach[0],sp.stomach[1]),extra:sp.extra,stom:R(0,1.2),gt:R(0,2),greedUntil:0,pt:null,
     vx:0,vy:0,face:Math.random()<.5?1:-1,fa:1,rot:0,flipY:false,sqx:1,sqy:1,yoff:0,pop:0,chew:0,
@@ -244,7 +254,7 @@ function spawn(sp,leader){
   pick(f);fish.push(f);return f;
 }
 function populate(){
-  SPECIES.forEach(function(sp){var ld=null;for(var n=0;n<sp.n;n++){var f=spawn(sp,ld);if(sp.school&&!ld)ld=f}});
+  SPECIES.forEach(function(sp){var ld=null;for(var n=0;n<sp.n;n++){var f=spawn(sp,ld,{fid:sp.id+'_'+n});if(sp.school&&!ld)ld=f}});
 }
 function dims(f){var L=f.L;if(f.skel&&L.skel){var w=f.w*(L.skelW!=null?L.skelW:sprW(L.skel)/sprW(L.body));return [w,sprH(L.skel,w)]}return [f.w,f.h]}
 function restY(f){var d=dims(f),r=f.rotT||0,ext=(d[1]*Math.abs(Math.cos(r))+d[0]*Math.abs(Math.sin(r)))/2;return SURF+14-ext}
@@ -638,6 +648,7 @@ function drawCreature(f){
   var sx=(nat===0?1:f.fa*nat),sy=(f.flipY?-1:1);
   ctx.scale(sx*f.sqx*pop,sy*f.sqy*pop*chew);
   if(f.hide>.02&&L.hideSplit)drawHermit(f,name,w,h);
+  else if(L.img)ctx.drawImage(L.img,-w/2,-h/2,w,h);
   else drawSpr(ctx,name,0,0,w,.5,.5);
   var faint=!f.skel&&!f.perm&&(f.mode==='sink'||f.mode==='rest'||(f.mode==='wake'&&f.wk<CFG.recover.wake*.3));
   if(faint&&L.eyes){var er=Math.max(L.er*w,13);L.eyes.forEach(function(e){var ex=(e[0]-.5)*w,ey=(e[1]-.5)*h;
@@ -742,7 +753,8 @@ function leaveFull(){if(MINI||TR)return false;
   TR={t:0,d:.4,a:{Z:Z,CX:CX,CY:CY,bg:0},b:{Z:ZMIN,CX:MCX,CY:MCY,bg:0},done:function(){MINI=true;bgA=0;try{parent.postMessage('closeTank',location.origin)}catch(x){}}};return true}
 function start(){wantRun=true;if(!ready||running)return;running=true;last=0;fit();raf=requestAnimationFrame(loop)}
 function stop(){wantRun=false;running=false;cancelAnimationFrame(raf)}
-ATLAS.onload=function(){buildGround();buildDecor();populate();jarFill();if(CFG.debug)buildDebug();fit();Z=ZMIN;clampC();ready=true;if(wantRun)start()};
+ATLAS.onload=function(){buildGround();buildDecor();populate();jarFill();if(CFG.debug)buildDebug();fit();Z=ZMIN;clampC();ready=true;if(wantRun)start();
+  try{if(window.parent!==window)parent.postMessage({t:'aqReady'},location.origin)}catch(e){}};
 ATLAS.src='assets/aquarium/atlas.png';
 window.addEventListener('resize',fit);
 setTimeout(function(){document.getElementById('aq-hint').style.opacity=0},5000);
@@ -752,14 +764,36 @@ function find(a,x,key){return typeof x==='string'?a.filter(function(q){return q[
 window.Aquarium={aud:AUD,CFG:CFG,LOOKS:LOOKS,SPECIES:SPECIES,DECOR:DECOR,creatures:fish,pellets:pel,decor:decor,jar:J,water:water,
   /* lifecycle: mount .phone > canvas#aq-c in your page, then start()/stop() when the activity opens/closes; resize() after layout changes */
   start:start,stop:stop,resize:fit,mini:setMini,openFull:enterFull,closeFull:leaveFull,mcv:mcv,frames:function(){return mf},cam:function(){return [Z,CX,CY,W,H,ZMIN,MCX,MCY]},isRunning:function(){return running},
-  addCreature:function(id){var sp=SPECIES.filter(function(q){return q.id===id})[0];return sp?spawn(sp):null},
+  addCreature:function(id){var sp=SPECIES.filter(function(q){return q.id===id})[0];return sp&&!sp.custom?spawn(sp):null},
+  /* ---- named fish (used by the main game + fish book) ---- */
+  isReady:function(){return ready},
+  species:function(){return SPECIES.filter(function(q){return !q.custom}).map(function(q){return {id:q.id,kind:q.kind,looks:q.looks.slice()}})},
+  listFish:function(){return fish.map(function(f){return {fid:f.fid,name:f.name,sp:f.sp.id,look:f.look,kind:f.kind,custom:!!f.L.img,mode:f.mode}})},
+  /* o = {fid,name, sp:'blue' [,look]}  (existing species)   or   {fid,name, img:dataURL, face:1|-1}  (drawn / photo fish, face = side the picture looks at).
+     Does nothing and returns false when a fish with that fid already exists, so the game can call it again safely. cb(fish) runs once it is in the tank. */
+  addFish:function(o,cb){if(!o||!o.fid||fish.some(function(q){return q.fid===o.fid}))return false;
+    if(o.img){var im=new Image();im.onload=function(){if(fish.some(function(q){return q.fid===o.fid}))return;
+        var iw=im.naturalWidth||1,ih=im.naturalHeight||1,ar=ih/iw,fc=o.face===-1?-1:1,
+            L={img:im,ar:ar,face:fc,eyes:[[fc>0?.75:.25,.4]],er:.07},w=cl(125/ar,70,170),
+            f=spawn(SPECIES.filter(function(q){return q.custom})[0],null,{L:L,look:'custom',w:w,fid:o.fid,name:o.name});cb&&cb(f)};
+      im.onerror=function(){cb&&cb(null)};im.src=o.img;return true}
+    var sp=SPECIES.filter(function(q){return q.id===o.sp&&!q.custom})[0];if(!sp)return false;
+    var f2=spawn(sp,null,{fid:o.fid,name:o.name,look:LOOKS[o.look]&&sp.looks.indexOf(o.look)>=0?o.look:null});cb&&cb(f2);return true},
+  removeFish:function(fid){var f=fish.filter(function(q){return q.fid===fid})[0];return f?window.Aquarium.removeCreature(f):false},
+  renameFish:function(fid,name){var f=fish.filter(function(q){return q.fid===fid})[0];if(!f)return false;f.name=String(name).slice(0,20);return true},
+  /* small picture of a fish for the book (data URL, fish drawn at its native facing) */
+  thumb:function(fid,px){var f=fish.filter(function(q){return q.fid===fid})[0];if(!f||!ready)return '';px=px||160;
+    var L=f.L,m=L.img?null:MAN[L.body],sw=L.img?(L.img.naturalWidth||1):m[2],sh=L.img?(L.img.naturalHeight||1):m[3],k=Math.min(px*.9/sw,px*.9/sh),w=sw*k,h=sh*k,
+        c=document.createElement('canvas'),g;c.width=c.height=px;g=c.getContext('2d');
+    if(L.img)g.drawImage(L.img,(px-w)/2,(px-h)/2,w,h);else g.drawImage(ATLAS,m[0],m[1],m[2],m[3],(px-w)/2,(px-h)/2,w,h);
+    return c.toDataURL('image/png')},
   removeCreature:function(x){var f=find(fish,x,'sp'),k=fish.indexOf(f);if(k<0)return false;fish.forEach(function(g){if(g.ld===f)g.ld=null});fish.splice(k,1);return true},
   addDecor:function(id){var D=DECOR.filter(function(q){return q.id===id})[0];if(!D)return null;var n=decor.length;buildDecor([D],true);return decor[n]||null},
   removeDecor:function(x){var d=find(decor,x,'D'),k=decor.indexOf(d);if(k<0)return false;decor.splice(k,1);return true},
   dropFood:function(x,n){for(var k=0;k<(n||1);k++)pel.push({x:x+R(-30,30),y:-20,vx:R(-20,20),vy:R(0,80),rest:0,in:0})},
   refillJar:function(){jarSet(CFG.jar.cap)},openChest:function(){decor.forEach(function(d){if(d.D.chest&&(!d.cs||d.cs==='closed')){d.cs='opening';d.cu=0;chestBubbles(d)}})},
   getState:function(){return {running:running,pollution:+water.p.toFixed(3),waterOk:water.ok,badSeconds:+water.badT.toFixed(1),jar:Math.floor(J.stock),
-    creatures:fish.map(function(f){return {id:f.sp.id,look:f.look,x:Math.round(f.x),y:Math.round(f.y),mode:f.mode,cause:f.cause||null,full:+(f.stom/f.cap).toFixed(2)}}),
+    creatures:fish.map(function(f){return {id:f.sp.id,fid:f.fid,name:f.name,look:f.look,x:Math.round(f.x),y:Math.round(f.y),mode:f.mode,cause:f.cause||null,full:+(f.stom/f.cap).toFixed(2)}}),
     decor:decor.map(function(d){return {id:d.D.id,sprite:d.s,x:Math.round(d.x),state:d.cs||null}})}},
   setState:function(st){if(st.pollution!=null)water.p=water.vis=cl(st.pollution,0,1);if(st.jar!=null)jarSet(st.jar);
     if(st.creatures)Object.keys(st.creatures).forEach(function(id){var have=fish.filter(function(f){return f.sp.id===id}),want=st.creatures[id],k;
