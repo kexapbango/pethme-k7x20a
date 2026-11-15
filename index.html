@@ -182,12 +182,13 @@ setTimeout(fin,16000);
       <!-- drawer -->
       <rect x="0" y="10" width="84" height="66" rx="8" fill="#FFD9A8" stroke="#E8A458" stroke-width="4"/>
       <path d="M6 43H78" stroke="#E8A458" stroke-width="3"/><circle cx="42" cy="27" r="3.5" fill="#E8A458"/><circle cx="42" cy="60" r="3.5" fill="#E8A458"/>
-      <!-- fish tank placeholder -->
-      <rect x="4" y="-44" width="76" height="52" rx="8" fill="#D6EEF8" fill-opacity=".55" stroke="#8FC3DB" stroke-width="4"/>
+      <!-- fish tank placeholder (hidden once the live aquarium is running) -->
+      <g id="tkPh"><rect x="4" y="-44" width="76" height="52" rx="8" fill="#D6EEF8" fill-opacity=".55" stroke="#8FC3DB" stroke-width="4"/>
       <rect x="7" y="-26" width="70" height="31" rx="5" fill="#9FD6EE" fill-opacity=".8"/>
       <ellipse cx="34" cy="-10" rx="9" ry="5" fill="#FF9F6B" stroke="#D9703A" stroke-width="2"/><path d="M43 -10l8 -5v10z" fill="#FF9F6B" stroke="#D9703A" stroke-width="2" stroke-linejoin="round"/>
       <circle cx="30" cy="-12" r="1.5" fill="#6B3F1D"/>
-      <circle cx="58" cy="-20" r="2" fill="#fff" fill-opacity=".8"/><circle cx="62" cy="-28" r="1.5" fill="#fff" fill-opacity=".8"/>
+      <circle cx="58" cy="-20" r="2" fill="#fff" fill-opacity=".8"/><circle cx="62" cy="-28" r="1.5" fill="#fff" fill-opacity=".8"/></g>
+      <foreignObject id="tkFo" x="4" y="-44" width="76" height="52" pointer-events="none"><canvas id="tkMini" style="width:76px;height:52px;display:none"></canvas></foreignObject>
       <rect id="tankhit" x="0" y="-48" width="84" height="58" fill="transparent" pointer-events="all" style="cursor:pointer"/>
     </g>
     <g data-by="354" transform="translate(292 -86)">
@@ -552,14 +553,31 @@ var fOn=$('fOn'),fOff=$('fOff'),glow=$('glow'),fire=true;
 function setFire(v,sv2){fire=v;fOn.style.display=v?'':'none';fOff.style.display=v?'none':'';glow.style.display=v?'':'none';if(sv2){try{localStorage.setItem('fire',v?'1':'0')}catch(e){}}}
 try{if(localStorage.getItem('fire')==='0')setFire(false)}catch(e){}
 $('fhit').addEventListener('click',function(){if(tapOK())setFire(!fire,true)});
-var tkO=document.createElement('div'),tkF=document.createElement('iframe');
-tkO.style.cssText='display:none;position:fixed;inset:0;z-index:9999;background:#000';
-tkF.style.cssText='width:100%;height:100%;border:0;display:block';tkF.title='Aquarium';
-tkO.appendChild(tkF);document.body.appendChild(tkO);
+var tkO=document.createElement('div'),tkF=document.createElement('iframe'),tkM=$('tkMini'),tkMc=tkM.getContext('2d'),tkFo=$('tkFo'),tkPh=$('tkPh'),tkOpen=false,tkLive=false,tkRun=false,tkShown=false,MW=228,MH=156;
+tkF.style.cssText='width:100%;height:100%;border:0;display:block;background:transparent';tkF.title='Aquarium';
+function tkMiniSt(){tkO.style.cssText='position:fixed;left:0;top:0;width:'+MW+'px;height:'+MH+'px;opacity:0;pointer-events:none;z-index:-1;overflow:hidden;display:block'}
+function tkFullSt(){tkO.style.cssText='position:fixed;inset:0;z-index:9999;background:transparent;display:block'}
+tkMiniSt();tkO.appendChild(tkF);document.body.appendChild(tkO);
+function tkSend(m){try{tkF.contentWindow.postMessage(m,location.origin)}catch(e){}}
 function tkLoad(){if(!tkF.getAttribute('src'))tkF.src='aquarium.html'}
+function tkOpenMsg(){var r=tkFo.getBoundingClientRect();return {t:'tankFull',rect:{x:r.left,y:r.top,w:r.width,h:r.height},vw:innerWidth,vh:innerHeight}}
+tkF.addEventListener('load',function(){tkRun=false;if(tkOpen)tkSend(tkOpenMsg())});
 window.addEventListener('load',function(){setTimeout(tkLoad,2500)});
-$('tankhit').addEventListener('click',function(){if(!tapOK()||MV)return;tkLoad();tkO.style.display='block';try{tkF.contentWindow.postMessage('tankResume',location.origin)}catch(e){}});
-window.addEventListener('message',function(e){if(e.origin===location.origin&&e.source===tkF.contentWindow&&e.data==='closeTank'){tkO.style.display='none';try{tkF.contentWindow.postMessage('tankPause',location.origin)}catch(e){}}});
+$('tankhit').addEventListener('click',function(){if(!tapOK()||MV)return;tkLoad();var m=tkOpenMsg();tkOpen=true;tkFullSt();tkSend(m)});
+window.addEventListener('message',function(e){if(e.origin!==location.origin||e.source!==tkF.contentWindow)return;
+  if(e.data==='closeTank'){tkOpen=false;tkMiniSt();tkRun=false}
+  else if(e.data==='tankMiniReady'){tkLive=true;tkRun=true}});
+/* live mini aquarium: copy the aquarium canvas into the room a few times a second, only while it is on screen */
+function tkVisible(){if(!tkF.getAttribute('src'))return false;var r=tkFo.getBoundingClientRect();return r.width>2&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth}
+setInterval(function(){var want=!tkOpen&&!document.hidden&&tkVisible();
+  if(want&&!tkRun){tkRun=true;tkSend('tankMini')}else if(!want&&tkRun&&!tkOpen){tkRun=false;tkSend('tankPause')}},300);
+var tkLast=0;
+function tkCopy(ts){requestAnimationFrame(tkCopy);if(!tkLive||tkOpen||!tkRun||ts-tkLast<60)return;tkLast=ts;
+  try{var c=tkF.contentDocument.getElementById('aq-c');if(!c||!c.width||Math.abs(c.width/c.height-MW/MH)>.02)return;
+    if(tkM.width!==c.width||tkM.height!==c.height){tkM.width=c.width;tkM.height=c.height}
+    tkMc.clearRect(0,0,tkM.width,tkM.height);tkMc.drawImage(c,0,0);
+    if(!tkShown){tkShown=true;tkM.style.display='block';tkPh.style.display='none'}}catch(e){}}
+requestAnimationFrame(tkCopy);
 /* ---------- move furniture (indoor) ---------- */
 var LK='pethome.layout',SX0=SEATX.slice(),SY0=SEAT_Y,MV=false,selU=null,drag=null,mvLE=null,mvRaf=0,mvT=0;
 function G(b){return [].slice.call(furn.querySelectorAll(':scope > [data-by="'+b+'"]'))}
