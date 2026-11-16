@@ -256,6 +256,12 @@ function spawn(sp,leader,o){
 function populate(){
   SPECIES.forEach(function(sp){var ld=null;for(var n=0;n<sp.n;n++){var f=spawn(sp,ld,{fid:sp.id+'_'+n});if(sp.school&&!ld)ld=f}});
 }
+function thumbOf(L,px){if(!ready||!L)return '';px=px||160;
+  var m=L.img?null:MAN[L.body],sw=L.img?(L.img.naturalWidth||1):m[2],sh=L.img?(L.img.naturalHeight||1):m[3],k=Math.min(px*.9/sw,px*.9/sh),w=sw*k,h=sh*k,c=document.createElement('canvas'),g;
+  c.width=c.height=px;g=c.getContext('2d');
+  if(L.img)g.drawImage(L.img,(px-w)/2,(px-h)/2,w,h);else g.drawImage(ATLAS,m[0],m[1],m[2],m[3],(px-w)/2,(px-h)/2,w,h);
+  return c.toDataURL('image/png')}
+function fishUI(on){try{window.AqFishUI&&window.AqFishUI.show(on)}catch(e){}}
 function dims(f){var L=f.L;if(f.skel&&L.skel){var w=f.w*(L.skelW!=null?L.skelW:sprW(L.skel)/sprW(L.body));return [w,sprH(L.skel,w)]}return [f.w,f.h]}
 function restY(f){var d=dims(f),r=f.rotT||0,ext=(d[1]*Math.abs(Math.cos(r))+d[0]*Math.abs(Math.sin(r)))/2;return SURF+14-ext}
 
@@ -746,11 +752,11 @@ function stepTR(dt){TR.t+=dt;var u=Math.min(1,TR.t/TR.d),e=u<.5?2*u*u:1-Math.pow
   Z=a.Z+(b.Z-a.Z)*e;CX=a.CX+(b.CX-a.CX)*e;CY=a.CY+(b.CY-a.CY)*e;bgA=a.bg+(b.bg-a.bg)*e;
   if(u>=1){var f=TR.done;TR=null;if(f)f()}}
 function defCam(){var z=Z,x=CX,y=CY;Z=ZMIN;clampC();var o={Z:Z,CX:CX,CY:CY};Z=z;CX=x;CY=y;return o}
-function setMini(){if(TR)return;MINI=true;bgA=0;wantRun=true;if(!running&&ready)start()}
-function enterFull(){wantRun=true;if(!running&&ready)start();MINI=false;fit();Z=ZMIN;CX=MCX;CY=MCY;TR=null;bgA=0;sentFull=false;
+function setMini(){if(TR)return;fishUI(false);MINI=true;bgA=0;wantRun=true;if(!running&&ready)start()}
+function enterFull(){wantRun=true;if(!running&&ready)start();MINI=false;fit();Z=ZMIN;CX=MCX;CY=MCY;TR=null;bgA=0;sentFull=false;fishUI(true);
   try{var c=AUD.ctx;if(c&&c.state==='suspended')c.resume()}catch(e){}}
 function leaveFull(){if(MINI||TR)return false;
-  TR={t:0,d:.4,a:{Z:Z,CX:CX,CY:CY,bg:0},b:{Z:ZMIN,CX:MCX,CY:MCY,bg:0},done:function(){MINI=true;bgA=0;try{parent.postMessage('closeTank',location.origin)}catch(x){}}};return true}
+  TR={t:0,d:.4,a:{Z:Z,CX:CX,CY:CY,bg:0},b:{Z:ZMIN,CX:MCX,CY:MCY,bg:0},done:function(){MINI=true;bgA=0;try{parent.postMessage('closeTank',location.origin)}catch(x){}}};fishUI(false);return true}
 function start(){wantRun=true;if(!ready||running)return;running=true;last=0;fit();raf=requestAnimationFrame(loop)}
 function stop(){wantRun=false;running=false;cancelAnimationFrame(raf)}
 ATLAS.onload=function(){buildGround();buildDecor();populate();jarFill();if(CFG.debug)buildDebug();fit();Z=ZMIN;clampC();ready=true;if(wantRun)start();
@@ -782,11 +788,9 @@ window.Aquarium={aud:AUD,CFG:CFG,LOOKS:LOOKS,SPECIES:SPECIES,DECOR:DECOR,creatur
   removeFish:function(fid){var f=fish.filter(function(q){return q.fid===fid})[0];return f?window.Aquarium.removeCreature(f):false},
   renameFish:function(fid,name){var f=fish.filter(function(q){return q.fid===fid})[0];if(!f)return false;f.name=String(name).slice(0,20);return true},
   /* small picture of a fish for the book (data URL, fish drawn at its native facing) */
-  thumb:function(fid,px){var f=fish.filter(function(q){return q.fid===fid})[0];if(!f||!ready)return '';px=px||160;
-    var L=f.L,m=L.img?null:MAN[L.body],sw=L.img?(L.img.naturalWidth||1):m[2],sh=L.img?(L.img.naturalHeight||1):m[3],k=Math.min(px*.9/sw,px*.9/sh),w=sw*k,h=sh*k,
-        c=document.createElement('canvas'),g;c.width=c.height=px;g=c.getContext('2d');
-    if(L.img)g.drawImage(L.img,(px-w)/2,(px-h)/2,w,h);else g.drawImage(ATLAS,m[0],m[1],m[2],m[3],(px-w)/2,(px-h)/2,w,h);
-    return c.toDataURL('image/png')},
+  thumb:function(fid,px){var f=fish.filter(function(q){return q.fid===fid})[0];return f?thumbOf(f.L,px):''},
+  speciesThumb:function(id,px){var sp=SPECIES.filter(function(q){return q.id===id&&!q.custom})[0];return sp?thumbOf(LOOKS[sp.looks[0]],px):''},
+  isFull:function(){return !MINI&&!TR},
   removeCreature:function(x){var f=find(fish,x,'sp'),k=fish.indexOf(f);if(k<0)return false;fish.forEach(function(g){if(g.ld===f)g.ld=null});fish.splice(k,1);return true},
   addDecor:function(id){var D=DECOR.filter(function(q){return q.id===id})[0];if(!D)return null;var n=decor.length;buildDecor([D],true);return decor[n]||null},
   removeDecor:function(x){var d=find(decor,x,'D'),k=decor.indexOf(d);if(k<0)return false;decor.splice(k,1);return true},
@@ -802,6 +806,30 @@ window.Aquarium={aud:AUD,CFG:CFG,LOOKS:LOOKS,SPECIES:SPECIES,DECOR:DECOR,creatur
   wake:wake,scare:scare,knockOut:startDown,debug:{panel:function(on){if(on&&!document.getElementById('aq-dbg'))buildDebug()},state:DBG}};
 })();
 </script><button id="closeTank" aria-label="Close aquarium" style="display:none;position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:calc(env(safe-area-inset-right,0px) + 12px);z-index:99999;width:42px;height:42px;border-radius:50%;border:3px solid #E8A458;background:#FFE9B5;color:#6B3F1D;font:700 20px/1 sans-serif;cursor:pointer;touch-action:manipulation">✕</button>
+<script>
+/* 🐟 add-fish button: only while the tank is open full screen. The drawing / photo / name dialogs belong to the main page, so this just asks it to open them. */
+(function(){
+  if(window.parent===window)return;
+  var css=document.createElement('style');
+  css.textContent='#fishBtn{display:none;position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:calc(env(safe-area-inset-right,0px) + 64px);z-index:99999;width:42px;height:42px;border-radius:50%;border:3px solid #E8A458;background:#FFE9B5;font:700 20px/1 sans-serif;cursor:pointer;touch-action:manipulation}'+
+   '#fishDd{display:none;position:fixed;top:calc(env(safe-area-inset-top,0px) + 58px);right:calc(env(safe-area-inset-right,0px) + 12px);z-index:99999;min-width:188px;background:#FFF3D9;border:3px solid #E8A458;border-radius:14px;padding:6px;flex-direction:column;gap:2px;font:800 15px Nunito,"Trebuchet MS",system-ui,sans-serif;color:#6B3F1D;box-shadow:0 6px 18px rgba(90,45,10,.3)}'+
+   '#fishDd.on{display:flex}#fishDd button{font:inherit;color:inherit;background:transparent;border:0;border-radius:9px;padding:9px 10px;text-align:left;cursor:pointer}#fishDd button:active{background:#FFE0A3}';
+  document.head.appendChild(css);
+  var b=document.createElement('button'),d=document.createElement('div'),fi=document.createElement('input');
+  b.id='fishBtn';b.setAttribute('aria-label','Add a fish');b.textContent='🐟';
+  d.id='fishDd';d.innerHTML='<button data-a="draw">✏️ Draw it</button><button data-a="photo">📷 From a photo</button><button data-a="species">🐠 Existing fish</button><button data-a="bye">👋 Say goodbye</button>';
+  fi.type='file';fi.accept='image/*';fi.style.display='none';
+  document.body.appendChild(b);document.body.appendChild(d);document.body.appendChild(fi);
+  function send(m){try{parent.postMessage(m,location.origin)}catch(e){}}
+  b.addEventListener('click',function(){d.classList.toggle('on')});
+  document.addEventListener('pointerdown',function(e){if(d.classList.contains('on')&&!d.contains(e.target)&&e.target!==b)d.classList.remove('on')});
+  d.addEventListener('click',function(e){var x=e.target.closest('button');if(!x)return;d.classList.remove('on');
+    if(x.dataset.a==='photo')fi.click();      /* opened here, straight from the tap, so phones allow it */
+    else send({t:'fishAdd',how:x.dataset.a})});
+  fi.addEventListener('change',function(){var f=fi.files[0];fi.value='';if(f)send({t:'fishPhoto',file:f})});
+  window.AqFishUI={show:function(on){b.style.display=on?'block':'none';if(!on)d.classList.remove('on')}};
+})();
+</script>
 <script>
 (function(){
   if(window.parent===window)return; // opened on its own: no close button

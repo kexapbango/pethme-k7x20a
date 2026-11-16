@@ -6,7 +6,8 @@ html.intro-on,html.intro-on body{background:#000!important}
 #intro{position:fixed;inset:0;z-index:99999;overflow:hidden;cursor:pointer;background:#000;transition:background .6s ease,opacity .45s ease;-webkit-tap-highlight-color:transparent}
 #isv{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 #iT{position:absolute;left:0;right:0;top:70%;text-align:center;font:800 clamp(28px,9vw,46px) "Nunito","Trebuchet MS",system-ui,sans-serif;letter-spacing:.02em;color:#6B3F1D;text-shadow:0 3px 0 #fff;opacity:0;transition:opacity .6s ease;pointer-events:none}
-.phone.zm>*:not(#room){opacity:0!important;transition:opacity .25s!important}
+.phone.zm>*:not(#room):not(.pxo):not(.modal){opacity:0!important;transition:opacity .25s!important}
+.tkdlg{z-index:30!important}   /* the open aquarium steps behind a dialog (fish menu) */
 .ih{transform-box:fill-box;transform-origin:center;animation:iH .9s ease-out forwards;pointer-events:none}
 @keyframes iH{0%{opacity:0;transform:translateY(12px) scale(.4)}30%{opacity:1}100%{opacity:0;transform:translateY(-90px) scale(1.2)}}
 </style>
@@ -261,8 +262,8 @@ var g0=$('chk'),s0='<rect x="-34" y="-34" width="68" height="68" rx="5" fill="#f
 for(var r=0;r<4;r++)for(var c=0;c<4;c++)if((r+c)%2===0)s0+='<rect x="'+(-30+c*15)+'" y="'+(-30+r*15)+'" width="15" height="15" fill="#222"/>';
 g0.innerHTML=s0;
 /* ---------- saved data ---------- */
-var KEY='pethome.v1',MAXPETS=20,DB={title:'sweet humm',photo:{a:'',b:''},pets:{},roster:[{id:'axo',type:'axo'},{id:'monkey',type:'monkey'}],fish:[],fishNames:{}};
-try{var sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){if(sv.title)DB.title=sv.title;if(sv.photo)DB.photo=sv.photo;if(sv.pets)DB.pets=sv.pets;if(Array.isArray(sv.fish))DB.fish=sv.fish;if(sv.fishNames&&typeof sv.fishNames==='object')DB.fishNames=sv.fishNames;if(sv.roster&&sv.roster.length)DB.roster=sv.roster}}catch(e){}
+var KEY='pethome.v1',MAXPETS=20,DB={title:'sweet humm',photo:{a:'',b:''},pets:{},roster:[{id:'axo',type:'axo'},{id:'monkey',type:'monkey'}],fish:[],fishNames:{},fishGone:[]};
+try{var sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){if(sv.title)DB.title=sv.title;if(sv.photo)DB.photo=sv.photo;if(sv.pets)DB.pets=sv.pets;if(Array.isArray(sv.fish))DB.fish=sv.fish;if(sv.fishNames&&typeof sv.fishNames==='object')DB.fishNames=sv.fishNames;if(Array.isArray(sv.fishGone))DB.fishGone=sv.fishGone;if(sv.roster&&sv.roster.length)DB.roster=sv.roster}}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB));try{window.PH_SAVED&&window.PH_SAVED()}catch(e3){}}catch(e){try{note('Storage is full')}catch(e2){}}}
 window.PH_DB=DB;window.PH_SAVE=save;window.PH_NOTE=note;window.PH_ADD=addPet;window.PH_BYE=doBye;window.PH_APPLYPET=function(r){applyPet(r);putPet(r)};window.PH_PETS=function(){return pets};window.PH_GEST=function(){return gest};window.PH_SCENE=function(){return scene};window.PH_RENDER=renderPaint;window.PH_FURNGET=function(){var o={};U.forEach(function(u){if(u.dx||u.dy)o[u.k]=[Math.round(u.dx),Math.round(u.dy)]});return o};window.PH_FURN_SET=function(o){if(o.tank&&!o.drawer)o.drawer=o.tank;U.forEach(function(u){var v=o[u.k];setOff(u,v?+v[0]:0,v?+v[1]:0)});seatSync();saveL()};
 /* pet images + parts live in IndexedDB; localStorage keeps only small metadata (img/parts are non-enumerable so JSON skips them) */
@@ -602,7 +603,7 @@ window.addEventListener('load',function(){setTimeout(tkLoad,2500)});
    DB.fish      fish the player added  {id,name,sp[,look]} = a built-in species   |   {id,name,custom:1,face} = drawn / photo fish (picture in IndexedDB key 'fish:<id>', r.img is not saved to localStorage)
    DB.fishNames new names for the built-in fish that come with the tank   {fishId:name}
    window.PH_FISH is what the add-fish menu and the fish book use. */
-var MAXFISH=24;
+var MAXFISH=24;DB.fishGone=DB.fishGone||[];
 DB.fish.forEach(function(r){if(r.custom&&!r.img)hide(r,'img','')});
 function fishAq(){try{var A=tkF.contentWindow&&tkF.contentWindow.Aquarium;return A&&A.isReady()?A:null}catch(e){return null}}
 function fishName(n,d){n=String(n==null?'':n).trim().slice(0,14);return n||d}
@@ -611,8 +612,33 @@ function fishApply(){var A=fishAq();if(!A)return;var have={};A.listFish().forEac
   DB.fish.forEach(function(r){if(have[r.id])return;
     if(r.custom)fishPic(r).then(function(im){if(im)A.addFish({fid:r.id,name:r.name,img:im,face:r.face})});
     else A.addFish({fid:r.id,name:r.name,sp:r.sp,look:r.look})});
-  Object.keys(DB.fishNames).forEach(function(id){if(have[id])A.renameFish(id,DB.fishNames[id])})}
-window.addEventListener('message',function(e){if(e.origin!==location.origin||e.source!==tkF.contentWindow)return;if(e.data&&e.data.t==='aqReady')fishApply()});
+  Object.keys(DB.fishNames).forEach(function(id){if(have[id])A.renameFish(id,DB.fishNames[id])});
+  DB.fishGone.forEach(function(id){if(have[id])A.removeFish(id)})}
+function fishOwnGone(id){var i=DB.fish.findIndex(function(r){return r.id===id});if(i<0)return false;var r=DB.fish.splice(i,1)[0];
+  if(r.custom)idbOp('readwrite',function(st){return st.delete('fish:'+id)}).catch(function(){});
+  save();var A=fishAq();if(A)A.removeFish(id);return true}
+window.addEventListener('message',function(e){if(e.origin!==location.origin||e.source!==tkF.contentWindow)return;var d=e.data||{};if(d.t==='aqReady')fishApply();
+  else if(d.t==='fishAdd'){if(d.how==='draw')drawFish();else if(d.how==='species')pickFish();else if(d.how==='bye')byeFishList()}
+  else if(d.t==='fishPhoto'&&d.file&&typeof d.file.size==='number')photoFish(d.file)});
+/* what the friend-sync needs: my fish as records, and a way to apply a record that came from the friend */
+window.PH_FISHREC=function(){var o={},ps=[];
+  DB.fish.forEach(function(r){var m={name:r.name};if(r.custom){m.custom=1;m.face=r.face}else{m.sp=r.sp;if(r.look)m.look=r.look}
+    if(r.custom)ps.push(fishPic(r).then(function(im){o[r.id]=im?{meta:m,img:im}:{meta:m,img:'',pending:1}}));else o[r.id]={meta:m,img:''}});
+  Object.keys(DB.fishNames).forEach(function(id){if(DB.fishGone.indexOf(id)<0)o[id]={meta:{name:DB.fishNames[id],builtin:1},img:''}});
+  DB.fishGone.forEach(function(id){o[id]={meta:{name:DB.fishNames[id]||id,builtin:1,gone:1},img:''}});
+  return Promise.all(ps).then(function(){return o})};
+window.PH_FISHIN=function(id,rec){var m=rec.meta||{},A,r;
+  if(m.builtin){
+    if(m.gone){if(DB.fishGone.indexOf(id)<0)DB.fishGone.push(id);delete DB.fishNames[id];A=fishAq();if(A)A.removeFish(id)}
+    else if(DB.fishGone.indexOf(id)<0){DB.fishNames[id]=fishName(m.name,id);A=fishAq();if(A)A.renameFish(id,DB.fishNames[id])}
+    save();return Promise.resolve()}
+  r=DB.fish.find(function(q){return q.id===id});
+  if(r){r.name=fishName(m.name,r.name);save();A=fishAq();if(A)A.renameFish(id,r.name);return Promise.resolve()}
+  r={id:id,name:fishName(m.name,'Fishy')};      /* a fish the friend added: always accepted (the limit is for what I add myself) */
+  if(m.custom){if(!rec.img)return Promise.resolve();r.custom=1;r.face=m.face===-1?-1:1;hide(r,'img',rec.img);
+    return idbOp('readwrite',function(st){return st.put({img:rec.img},'fish:'+id)}).then(function(){DB.fish.push(r);save();fishApply()},function(){note('Storage is full')})}
+  r.sp=m.sp;if(m.look)r.look=m.look;DB.fish.push(r);save();fishApply();return Promise.resolve()};
+window.PH_FISHDEL=function(id){return fishOwnGone(id)};
 window.PH_FISH={max:MAXFISH,
   count:function(){return DB.fish.length},
   /* add({name,sp[,look]}) or add({name,img:dataURL,face:1|-1}) -> Promise of the new id (null if refused) */
@@ -622,15 +648,16 @@ window.PH_FISH={max:MAXFISH,
     if(o.img){r.custom=1;r.face=o.face===-1?-1:1;hide(r,'img',o.img);
       return idbOp('readwrite',function(st){return st.put({img:o.img},'fish:'+r.id)}).then(function(){DB.fish.push(r);save();fishApply();return r.id},function(){note('Storage is full');return null})}
     r.sp=o.sp;if(o.look)r.look=o.look;DB.fish.push(r);save();fishApply();return Promise.resolve(r.id)},
-  /* only fish the player added can be sent away; the built-in ones can be renamed */
-  remove:function(id){var i=DB.fish.findIndex(function(r){return r.id===id});if(i<0)return false;var r=DB.fish.splice(i,1)[0];
-    if(r.custom)idbOp('readwrite',function(st){return st.delete('fish:'+id)}).catch(function(){});
-    save();var A=fishAq();if(A)A.removeFish(id);return true},
+  /* send a fish away: one the player added is deleted; a built-in one goes on the 'gone' list so it stays away after a reload */
+  remove:function(id){if(fishOwnGone(id))return true;var A=fishAq();
+    if(!A||DB.fishGone.indexOf(id)>=0||!A.listFish().some(function(f){return f.fid===id}))return false;
+    DB.fishGone.push(id);delete DB.fishNames[id];save();A.removeFish(id);return true},
   rename:function(id,name){name=fishName(name,'');if(!name)return false;var r=DB.fish.find(function(q){return q.id===id});
     if(r)r.name=name;else DB.fishNames[id]=name;save();var A=fishAq();if(A)A.renameFish(id,name);return true},
   /* [{id,name,own,custom,sp}] for every fish in the tank, or null while the tank is still loading (try again after a moment) */
   list:function(){tkLoad();var A=fishAq();return A?A.listFish().map(function(f){return {id:f.fid,name:f.name,own:DB.fish.some(function(r){return r.id===f.fid}),custom:f.custom,sp:f.sp}}):null},
   thumb:function(id,px){var A=fishAq();return A?A.thumb(id,px):''},
+  speciesThumb:function(sp,px){var A=fishAq();return A?A.speciesThumb(sp,px):''},
   species:function(){var A=fishAq();return A?A.species():null}};
 /* tap the tank: zoom the room into it, then the aquarium (tank only, transparent) takes over on top; the room keeps following its zoom/drag */
 /* where the tank is on screen right now, and how the room maps to the screen (needs the room unzoomed) */
@@ -819,9 +846,6 @@ function ddRender(){
   h+='<button data-a="prof">🐾 Pet profiles</button>';
   h+='<button data-a="addm"'+(full?' disabled':'')+'>➕ Add pet <small>'+n+'/'+MAXPETS+(full?' full':'')+'</small> '+(ddSub==='add'?'▴':'▾')+'</button>';
   if(ddSub==='add'&&!full)h+='<div class="sub"><button data-a="draw">✏️ Draw it</button><button data-a="photo">📷 From a photo</button><button data-a="clone">🐒 Existing pet</button></div>';
-  var nf=PH_FISH.count(),fullF=nf>=PH_FISH.max;
-  h+='<button data-a="fishm"'+(fullF?' disabled':'')+'>🐟 Add fish <small>'+nf+'/'+PH_FISH.max+(fullF?' full':'')+'</small> '+(ddSub==='fish'?'▴':'▾')+'</button>';
-  if(ddSub==='fish'&&!fullF)h+='<div class="sub"><button data-a="fdraw">✏️ Draw it</button><button data-a="fphoto">📷 From a photo</button><button data-a="fspecies">🐠 Existing fish</button></div>';
   h+='<button data-a="byem"'+(n<=1?' disabled':'')+'>👋 Say goodbye '+(ddSub==='bye'?'▴':'▾')+'</button>';
   if(ddSub==='bye'&&n>1)h+='<div class="sub">'+LIST.map(function(L){return '<button data-a="bye" data-id="'+L.id+'">'+esc(DB.pets[L.id].name||'Pet')+'</button>'}).join('')+'</div>';
   h+='<button data-a="set">⚙️ Settings</button>';h+='<button data-a="mv">🛋️ Move furniture</button><button data-a="mvreset">↩️ Reset furniture</button>';
@@ -838,10 +862,6 @@ dd.addEventListener('click',function(e){var b=e.target.closest('button');if(!b||
   else if(a==='addm'){ddSub=ddSub==='add'?'':'add';ddRender()}
   else if(a==='byem'){ddSub=ddSub==='bye'?'':'bye';ddRender()}
   else if(a==='draw'){ddClose();drawPet()}
-  else if(a==='fishm'){ddSub=ddSub==='fish'?'':'fish';ddRender()}
-  else if(a==='fdraw'){ddClose();drawFish()}
-  else if(a==='fphoto'){ddClose();photoFish()}
-  else if(a==='fspecies'){ddClose();pickFish()}
   else if(a==='photo'){ddClose();photoPet()}
   else if(a==='clone'){ddClose();clonePet()}
   else if(a==='bye'){ddClose();byePet(b.dataset.id)}
@@ -1085,7 +1105,7 @@ function toFish(src){ /* any drawable -> trimmed transparent canvas, longest sid
   var t=trim(src);if(!t)return null;var k=Math.min(1,256/Math.max(t.width,t.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(t.width*k));c.height=Math.max(1,Math.round(t.height*k));
   var x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(t,0,0,c.width,c.height);return c}
 function drawFish(){if(fishFull())return;openEditor({title:'Draw your fish',onDone:function(cv){var c=toFish(cv);if(!c){note('Draw something first!');return false}fishDlg(c)}})}
-function photoFish(){if(fishFull())return;pfFish=true;pfin.value='';pfin.click()}
+function photoFish(f){if(fishFull()||!f)return;photoLoad(f,true)}   /* f = the picture picked inside the tank */
 function finishFish(cur){var c=toFish(cur);if(!c){note('Nothing left to use');return}fishDlg(c)}
 /* last step for a drawn / photo fish: which way does the picture look (so it swims forwards), and its name */
 function fishDlg(c){
@@ -1100,14 +1120,30 @@ function fishDlg(c){
   var r2=document.createElement('div');r2.className='row2';o.box.appendChild(r2);
   function go(){var nm=inp.value.trim()||fishRnd();o.close();PH_FISH.add({name:nm,img:enc(c),face:face}).then(function(id){if(id)note(nm.slice(0,14)+' joined the aquarium 🐟')})}
   r2.appendChild(btn('Cancel','',o.close));r2.appendChild(btn('Add fish','pri',go));inp.addEventListener('keydown',function(e){if(e.key==='Enter')go()})}
+/* say goodbye to a fish (built-in ones too): pick it from the list, then confirm */
+function byeFishList(){
+  var L=PH_FISH.list();if(!L){note('The aquarium is still waking up, try again in a moment');return}
+  if(!L.length){note('No fish to say goodbye to');return}
+  var o=overlay();o.box.innerHTML='<div>Say goodbye to…</div>';var g=document.createElement('div');g.className='row2';
+  L.forEach(function(f){var b=document.createElement('button');b.className='pick';b.style.cssText='width:96px;padding:6px';
+    b.innerHTML='<img style="width:80px;height:56px" src="'+PH_FISH.thumb(f.id,160)+'" alt=""><span style="font-size:13px">'+esc(f.name)+'</span>';
+    b.addEventListener('click',function(){o.close();byeFish(f.id,f.name)});g.appendChild(b)});
+  o.box.appendChild(g);o.box.appendChild(Object.assign(btn('Cancel','',o.close),{style:'margin-top:10px'}))}
+function byeFish(id,nm){
+  var o=overlay();o.box.innerHTML='<div style="font-size:42px">👋</div><div>Say goodbye to '+esc(nm)+'?</div><div style="font-weight:700;font-size:13px;opacity:.75;margin-top:6px">They will leave the aquarium for good.</div>';
+  var r=document.createElement('div');r.className='row2';r.appendChild(btn('Cancel','',o.close));
+  r.appendChild(btn('Goodbye','pri',function(){o.close();if(PH_FISH.remove(id))note('Goodbye, '+nm+' 👋')}));o.box.appendChild(r)}
 /* existing species: pick one (small pictures come from the tank), then name it */
 function pickFish(){
   if(fishFull())return;var sp=PH_FISH.species();if(!sp){note('The aquarium is still waking up, try again in a moment');PH_FISH.list();return}
   var o=overlay();o.box.innerHTML='<div>Which fish?</div>';var g=document.createElement('div');g.className='row2';
   sp.forEach(function(s){var lab=FLAB[s.id]||s.id,b=document.createElement('button');b.className='pick';b.style.cssText='width:96px;padding:6px';
-    b.innerHTML='<img style="width:80px;height:56px" src="'+PH_FISH.thumb(s.id+'_0',160)+'" alt=""><span style="font-size:13px">'+esc(lab)+'</span>';
+    b.innerHTML='<img style="width:80px;height:56px" src="'+PH_FISH.speciesThumb(s.id,160)+'" alt=""><span style="font-size:13px">'+esc(lab)+'</span>';
     b.addEventListener('click',function(){o.close();ask('Name your '+lab.toLowerCase(),fishRnd(),function(nm){PH_FISH.add({name:nm,sp:s.id}).then(function(id){if(id)note(nm.slice(0,14)+' joined the aquarium 🐟')})})});g.appendChild(b)});
   o.box.appendChild(g);o.box.appendChild(Object.assign(btn('Cancel','',o.close),{style:'margin-top:10px'}))}
+/* while a dialog is open on top of the open aquarium, lower the aquarium layer so the dialog can be seen and tapped */
+new MutationObserver(function(){tkO.classList.toggle('tkdlg',!!ph.querySelector('.pxo')||mod.classList.contains('on'))}).observe(ph,{childList:true,subtree:false});
+new MutationObserver(function(){tkO.classList.toggle('tkdlg',!!ph.querySelector('.pxo')||mod.classList.contains('on'))}).observe(mod,{attributes:true,attributeFilter:['class']});
 /* advanced: draw parts on top of the pet */
 var PT={eye:['👁️','Eye','blinks'],arm:['💪','Arm','swings'],leg:['🦵','Leg','swings when walking'],tail:['🐾','Tail','wags'],ear:['👂','Ear','twitches'],mouth:['👄','Mouth','stays put'],acc:['🎩','Extra','rides along']};
 function loadImg(u){return new Promise(function(ok,no){var i=new Image();i.onload=function(){ok(i)};i.onerror=no;i.src=u})}
@@ -1145,12 +1181,12 @@ function startPart(r,k){
     putPet(r);applyPet(r);setTimeout(function(){partsDlg(r)},0)}})},function(){note("Couldn't open this pet")})}
 /* photo */
 var pfin=document.createElement('input');pfin.type='file';pfin.accept='image/*';pfin.style.display='none';document.body.appendChild(pfin);
-var pfFish=false;   /* true while the photo being picked is for a fish, not a pet */
-function photoPet(){pfFish=false;pfin.value='';pfin.click()}
-pfin.addEventListener('change',function(){var f=pfin.files[0];if(!f)return;var fm=pfFish;pfFish=false;var u=URL.createObjectURL(f),im=new Image();
+function photoPet(){pfin.value='';pfin.click()}
+pfin.addEventListener('change',function(){var f=pfin.files[0];if(f)photoLoad(f,false)});
+function photoLoad(f,fm){var u=URL.createObjectURL(f),im=new Image();
   im.onload=function(){var big=Math.max(im.width,im.height),k=Math.min(1,768/big),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);
     c.toBlob(function(bl){URL.revokeObjectURL(u);photoDlg(c,bl,fm)},'image/png')};
-  im.onerror=function(){note("Couldn't open that image")};im.src=u});
+  im.onerror=function(){note("Couldn't open that image")};im.src=u}
 function circleCrop(c){var s=Math.min(c.width,c.height),o=document.createElement('canvas');o.width=o.height=256;var x=o.getContext('2d');
   x.beginPath();x.arc(128,128,122,0,6.2832);x.closePath();x.save();x.clip();x.drawImage(c,(c.width-s)/2,(c.height-s)/2,s,s,6,6,244,244);x.restore();
   x.lineWidth=8;x.strokeStyle='#fff';x.beginPath();x.arc(128,128,122,0,6.2832);x.stroke();return o}
@@ -1286,6 +1322,11 @@ let linked=false,wasLinked=false,first=true,applying=false,pushT=0,offs=[],cur=n
 let petsOn=false,petsReady=false,fxOn=false,fxBase='',lastHoldTs=0,hT=0,holdId='',fxT=0;const incoming=new Set();
 const SYN=new Set((()=>{try{return JSON.parse(lsg('ph.synced')||'[]')}catch(e){return[]}})());
 const savS=()=>lss('ph.synced',JSON.stringify([...SYN]));
+/* fish sync: rooms/<room>/fish/<id> = {meta:{name,sp,look,face,custom,builtin,gone},img,by,ts}. Fish I add = a node (deleted when removed). A built-in fish = a node only once it is renamed or removed (gone:1). */
+const FSYN=new Set((()=>{try{return JSON.parse(lsg('ph.fsynced')||'[]')}catch(e){return[]}})());
+const savF=()=>lss('ph.fsynced',JSON.stringify([...FSYN]));
+const FLAST=new Map(),incF=new Set();let fishOn=false,fishReady=false,fdBusy=false,fdAgain=false;
+const fmeta=m=>JSON.stringify([m.name||'',m.sp||'',m.look||'',m.face||0,m.custom?1:0,m.builtin?1:0,m.gone?1:0]);
 const clean=o=>JSON.parse(JSON.stringify(o===undefined?null:o));
 
 function ov(html){var o=document.createElement('div');o.className='pxo';var b=document.createElement('div');b.className='pxb';b.innerHTML=html;o.appendChild(b);document.querySelector('.phone').appendChild(o);o.addEventListener('pointerdown',e=>e.stopPropagation());return {o:o,b:b,close:()=>o.remove()}}
@@ -1321,18 +1362,18 @@ async function accept(from){
 
 async function unlink(){
   try{await remove(ref(db,'rooms/'+room+'/members/'+uid))}catch(e){}
-  offs.forEach(f=>f());offs=[];room=friend='';linked=wasLinked=false;petsOn=petsReady=false;fxOn=false;SYN.clear();savS();
+  offs.forEach(f=>f());offs=[];room=friend='';linked=wasLinked=false;petsOn=petsReady=false;fishOn=fishReady=false;fxOn=false;SYN.clear();savS();FSYN.clear();FLAST.clear();savF();
   lss('ph.room',null);lss('ph.friend',null);render();note('Unlinked');
 }
 
 function watchRoom(){
-  offs.forEach(f=>f());offs=[];first=true;wasLinked=false;petsOn=petsReady=false;fxOn=false;
+  offs.forEach(f=>f());offs=[];first=true;wasLinked=false;petsOn=petsReady=false;fishOn=fishReady=false;fxOn=false;
   if(!room)return;
   offs.push(onValue(ref(db,'rooms/'+room+'/members'),s=>{
     const m=s.val()||{};linked=!!(m[uid]&&friend&&m[friend]);
     if(linked&&!wasLinked){
       if(!first)note('Linked with your friend 💛');
-      get(ref(db,'rooms/'+room+'/state')).then(x=>x.exists()?applyRemote(x.val()):pushState()).catch(()=>{});startPets();startFx();get(ref(db,'rooms/'+room+'/photos')).then(x=>applyPhotos(x.val())).catch(()=>{});get(ref(db,'rooms/'+room+'/furn')).then(x=>{const r=x.val();r?applyFurn(r):window.PH_FURN(window.PH_FURNGET())}).catch(()=>{});
+      get(ref(db,'rooms/'+room+'/state')).then(x=>x.exists()?applyRemote(x.val()):pushState()).catch(()=>{});startPets();startFish();startFx();get(ref(db,'rooms/'+room+'/photos')).then(x=>applyPhotos(x.val())).catch(()=>{});get(ref(db,'rooms/'+room+'/furn')).then(x=>{const r=x.val();r?applyFurn(r):window.PH_FURN(window.PH_FURNGET())}).catch(()=>{});
     }
     wasLinked=linked;first=false;render();
   },()=>{}));
@@ -1530,6 +1571,55 @@ async function startPets(){
     offs.push(onChildRemoved(pr,x=>removeLocal(x.key),()=>{}));
   }catch(e){petsOn=false}
 }
+function uploadFish(id,l){
+  FLAST.set(id,fmeta(l.meta));FSYN.add(id);
+  set(ref(db,'rooms/'+room+'/fish/'+id),{meta:clean(l.meta),img:l.img||'',by:uid,ts:Date.now()}).catch(()=>{});
+}
+function fishIn(id,v,live){      /* a fish record from the friend -> apply here */
+  if(!v||!v.meta||typeof v.meta.name!=='string'||(live&&v.by===uid))return;
+  if(v.meta.custom&&!v.img)return;
+  const ms=fmeta(v.meta);if(FLAST.get(id)===ms)return;
+  FLAST.set(id,ms);FSYN.add(id);savF();incF.add(id);
+  Promise.resolve(window.PH_FISHIN(id,{meta:clean(v.meta),img:v.img||''})).catch(()=>{}).then(()=>incF.delete(id));
+}
+function fishOut(id){            /* the friend sent a fish away */
+  if(!FSYN.has(id))return;FSYN.delete(id);FLAST.delete(id);savF();
+  try{window.PH_FISHDEL(id)}catch(e){}
+}
+async function fishDiff(){       /* after every save: upload what changed here, remove what I sent away */
+  if(!linked||!fishReady||!window.PH_FISHREC)return;
+  if(fdBusy){fdAgain=true;return}fdBusy=true;
+  try{do{
+    fdAgain=false;const L=await window.PH_FISHREC();
+    for(const id in L){const l=L[id];if(!l.pending&&FLAST.get(id)!==fmeta(l.meta))uploadFish(id,l)}
+    [...FSYN].forEach(id=>{if(!L[id]&&!incF.has(id)){FSYN.delete(id);FLAST.delete(id);remove(ref(db,'rooms/'+room+'/fish/'+id)).catch(()=>{})}});
+    savF();
+  }while(fdAgain)}catch(e){}finally{fdBusy=false}
+}
+async function startFish(){
+  if(fishOn||!window.PH_FISHREC)return;fishOn=true;
+  try{
+    const fr=ref(db,'rooms/'+room+'/fish'),R=(await get(fr)).val()||{},L=await window.PH_FISHREC();
+    for(const id of new Set([...Object.keys(R),...Object.keys(L)])){
+      const r=R[id],l=L[id],ok=r&&r.meta&&typeof r.meta.name==='string';
+      if(ok&&l){
+        if(l.pending){FSYN.add(id);continue}
+        if(fmeta(l.meta)===fmeta(r.meta)){FLAST.set(id,fmeta(r.meta));FSYN.add(id)}
+        else if(r.by!==uid)fishIn(id,r);else uploadFish(id,l);
+      }else if(ok){
+        if(FSYN.has(id)&&!r.meta.builtin){FSYN.delete(id);remove(ref(db,'rooms/'+room+'/fish/'+id)).catch(()=>{})}   /* I sent it away while offline */
+        else fishIn(id,r);
+      }else if(l&&!l.pending){
+        if(FSYN.has(id)&&!l.meta.builtin){FSYN.delete(id);FLAST.delete(id);try{window.PH_FISHDEL(id)}catch(e){}}   /* the friend sent it away */
+        else uploadFish(id,l);
+      }
+    }
+    savF();fishReady=true;
+    offs.push(onChildAdded(fr,x=>fishIn(x.key,x.val(),true),()=>{}));
+    offs.push(onChildChanged(fr,x=>fishIn(x.key,x.val(),true),()=>{}));
+    offs.push(onChildRemoved(fr,x=>fishOut(x.key),()=>{}));
+  }catch(e){fishOn=false}
+}
 function openLink(){
   if(cur)return;
   if(!uid){note(authErr?'Sign-in problem: '+authErr:'Connecting… try again in a moment');return}
@@ -1537,7 +1627,7 @@ function openLink(){
 }
 
 window.PH_LINK=openLink;
-window.PH_SAVED=()=>{pushState();petDiff();photoDiff()};
+window.PH_SAVED=()=>{pushState();petDiff();photoDiff();fishDiff()};
 window.PH_PETSAVED=r=>{if(incoming.delete(r.id)||!linked||!petsReady)return;if(SYN.has(r.id))uploadPet(r)};
 onAuthStateChanged(auth,async u=>{
   if(!u||uid===u.uid)return;
