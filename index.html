@@ -617,7 +617,7 @@ function fishApply(){var A=fishAq();if(!A)return;var have={};A.listFish().forEac
 function fishOwnGone(id){var i=DB.fish.findIndex(function(r){return r.id===id});if(i<0)return false;var r=DB.fish.splice(i,1)[0];
   if(r.custom)idbOp('readwrite',function(st){return st.delete('fish:'+id)}).catch(function(){});
   save();var A=fishAq();if(A)A.removeFish(id);return true}
-window.addEventListener('message',function(e){if(e.origin!==location.origin||e.source!==tkF.contentWindow)return;var d=e.data||{};if(d.t==='aqReady')fishApply();
+window.addEventListener('message',function(e){if(e.origin!==location.origin||e.source!==tkF.contentWindow)return;var d=e.data||{};if(d.t==='aqReady'||d.t==='fishHello'){if(d.t==='aqReady')fishApply();try{tkF.contentWindow.postMessage({t:'fishUI',v:1},location.origin)}catch(x){}}
   else if(d.t==='fishAdd'){if(d.how==='draw')drawFish();else if(d.how==='species')pickFish();else if(d.how==='bye')byeFishList()}
   else if(d.t==='fishPhoto'&&d.file&&typeof d.file.size==='number')photoFish(d.file)});
 /* what the friend-sync needs: my fish as records, and a way to apply a record that came from the friend */

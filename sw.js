@@ -1,8 +1,8 @@
 // © 2026 Cen (github.com/kexapbango) and Kin. All rights reserved.
-// Pages: network-first (always the newest game, saved copy when offline).
+// Pages: network-first and always re-checked with the server (cache:'no-cache'), so the browser's own HTTP cache can never hand back an old page after an upload; saved copy when offline.
 // Art and sounds in assets/: saved copy first and refreshed in the background, so they show instantly. After you change an asset, open the game twice to see it.
 // Music (assets/music/) has its own cache: the page asks us to save every song once, then songs play (and seek) offline from it. Songs not saved yet stream from the network.
-var CACHE = 'pethome-v16';
+var CACHE = 'pethome-v17';
 var MC = 'pethome-music';
 var FILES = ['./', 'index.html', 'aquarium.html', 'manifest.json', 'icon-192.png', 'icon-512.png'
 ,
@@ -106,7 +106,7 @@ self.addEventListener('fetch', function (e) {
     return;
   }
   e.respondWith(
-    fetch(e.request).then(function (res) {
+    fetch(e.request, { cache: 'no-cache' }).then(function (res) {
       var copy = res.clone();
       caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
       return res;

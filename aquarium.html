@@ -827,7 +827,11 @@ window.Aquarium={aud:AUD,CFG:CFG,LOOKS:LOOKS,SPECIES:SPECIES,DECOR:DECOR,creatur
     if(x.dataset.a==='photo')fi.click();      /* opened here, straight from the tap, so phones allow it */
     else send({t:'fishAdd',how:x.dataset.a})});
   fi.addEventListener('change',function(){var f=fi.files[0];fi.value='';if(f)send({t:'fishPhoto',file:f})});
-  window.AqFishUI={show:function(on){b.style.display=on?'block':'none';if(!on)d.classList.remove('on')}};
+  /* the button only shows once the main page has said it understands these buttons (an older main page would ignore every tap) */
+  var want=false,ok=false;function sync(){var v=want&&ok;b.style.display=v?'block':'none';if(!v)d.classList.remove('on')}
+  window.addEventListener('message',function(e){if(e.source===parent&&e.data&&e.data.t==='fishUI'){ok=true;sync()}});
+  window.AqFishUI={show:function(on){want=on;sync()}};
+  send({t:'fishHello'});
 })();
 </script>
 <script>
